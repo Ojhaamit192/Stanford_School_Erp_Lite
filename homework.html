@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<style>
+  :root{ --bg:#0D0A08; --bg-panel:#1A130E; --line:#3D2A1A; --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:600px; margin:0 auto; padding:28px 18px 60px;}
+  .eyebrow{color:var(--gold-soft); font-size:0.85rem; margin-bottom:6px;}
+  h1{font-size:1.5rem; margin-bottom:4px;}
+  .sub{color:var(--text-dim); font-size:0.9rem; margin-bottom:24px;}
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
+  .date{color:var(--gold-soft); font-size:0.85rem; font-weight:600; margin-bottom:8px;}
+  .card p{white-space:pre-wrap;}
+  .card img{width:100%; border-radius:8px; margin-top:10px;}
+  .empty{color:var(--text-dim); text-align:center; padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow" id="schoolName">Loading…</div>
+  <h1 id="className">Homework</h1>
+  <div class="sub">Pichle kuch din ka homework</div>
+  <div id="list"></div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const slug = params.get('school');
+const className = params.get('class');
+document.getElementById('className').textContent = className ? `${className} — Homework` : 'Homework';
+
+async function load(){
+  const box = document.getElementById('list');
+  if(!slug || !className){ box.innerHTML = '<p class="empty">Link galat hai.</p>'; return; }
+  try{
+    const res = await fetch(`/api/homework?slug=${encodeURIComponent(slug)}&class=${encodeURIComponent(className)}&public=1`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Load fail');
+    document.getElementById('schoolName').textContent = data.school.name;
+    if(!data.homework.length){ box.innerHTML = '<p class="empty">Abhi koi homework nahi hai.</p>'; return; }
+    box.innerHTML = data.homework.map(h => `
+      <div class="card">
+        <div class="date">${new Date(h.date).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</div>
+        ${h.text ? `<p>${h.text}</p>` : ''}
+        ${h.image_url ? `<img src="${h.image_url}" alt="Homework photo">` : ''}
+      </div>
+    `).join('');
+  }catch(e){
+    box.innerHTML = '<p class="empty">Homework load nahi ho paaya.</p>';
+  }
+}
+load();
+</script>
+</body>
+</html>

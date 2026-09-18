@@ -1,0 +1,9 @@
+{
+  "name": "school-lite-erp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-school Attendance/Fees/Notice/Result platform with Supabase + Fast2SMS, deployed on Netlify.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

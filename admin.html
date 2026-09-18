@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Lite — Staff Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<style>
+  :root{
+    --bg:#0D0A08; --bg-panel:#1A130E; --bg-panel-2:#241A12; --line:#3D2A1A;
+    --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A;
+    --success:#5EAE7C; --danger:#E0574A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:900px; margin:0 auto; padding:24px 16px 80px;}
+  header{border-bottom:1px solid var(--line); padding:18px 0; margin-bottom:20px;}
+  header .wrap{display:flex; justify-content:space-between; align-items:center; padding-top:0; padding-bottom:0;}
+  .logo{font-size:1.2rem; font-weight:600;}
+  .logo span{color:var(--gold-soft);}
+  .school-name{color:var(--text-dim); font-size:0.9rem;}
+
+  input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
+  input:focus, select:focus, textarea:focus{border-color:var(--gold-soft); outline:none;}
+  label{font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; display:block;}
+  .field{margin-bottom:14px;}
+  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer;}
+  .btn:hover{background:var(--gold-soft);}
+  .btn-ghost{background:none; border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:8px; font-size:0.88rem; cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--gold-soft);}
+  .btn-small{padding:6px 12px; font-size:0.82rem; border-radius:6px;}
+  .btn-danger{background:var(--danger); color:#fff;}
+
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:20px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .row > *{flex:1; min-width:140px;}
+
+  .login-box{max-width:360px; margin:80px auto; text-align:center;}
+  .login-box h2{margin-bottom:18px;}
+
+  .tabs{display:flex; gap:6px; overflow-x:auto; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .tab{padding:10px 16px; font-size:0.9rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent;}
+  .tab.active{color:var(--gold-soft); border-color:var(--gold-soft); font-weight:600;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  table{width:100%; border-collapse:collapse; font-size:0.88rem;}
+  th, td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--line);}
+  th{color:var(--text-dim); font-weight:600; font-size:0.8rem;}
+
+  .pill{display:inline-block; padding:3px 10px; border-radius:99px; font-size:0.78rem; font-weight:600;}
+  .pill.present, .pill.paid{background:rgba(94,174,122,0.15); color:var(--success);}
+  .pill.absent, .pill.due{background:rgba(224,87,74,0.15); color:var(--danger);}
+
+  .toggle-row{display:flex; gap:6px;}
+  .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center;}
+  .toggle-btn.present.active{background:var(--success); color:#0a1a0f; border-color:var(--success); font-weight:600;}
+  .toggle-btn.absent.active{background:var(--danger); color:#2a0906; border-color:var(--danger); font-weight:600;}
+
+  #msg{font-size:0.88rem; padding:8px 0; min-height:18px;}
+  #msg.ok{color:var(--success);} #msg.err{color:var(--danger);}
+  .dim{color:var(--text-dim); font-size:0.85rem;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2>Staff Login</h2>
+  <p class="dim" id="loginSchoolName" style="margin-bottom:18px;"></p>
+  <div class="field"><input id="pinInput" placeholder="PIN daalein" type="password" inputmode="numeric"></div>
+  <button class="btn" style="width:100%" onclick="login()">Login</button>
+  <p id="loginMsg" style="color:var(--danger); margin-top:10px; font-size:0.85rem;"></p>
+</div>
+
+<div id="appScreen" style="display:none;">
+  <header><div class="wrap">
+    <div class="logo">School<span>Lite</span></div>
+    <div class="school-name" id="schoolNameHeader"></div>
+  </div></header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="students">Students</div>
+      <div class="tab" data-tab="attendance">Attendance</div>
+      <div class="tab" data-tab="fees">Fees</div>
+      <div class="tab" data-tab="notices">Notices</div>
+      <div class="tab" data-tab="results">Results</div>
+      <div class="tab" data-tab="homework">Homework</div>
+    </div>
+
+    <div id="msg"></div>
+
+    <!-- STUDENTS -->
+    <div class="panel active" id="panel-students">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Naya Student Jodein</h3>
+        <div class="row">
+          <div class="field"><label>Naam</label><input id="s_name"></div>
+          <div class="field"><label>Class</label><input id="s_class" placeholder="jaise: Class 8"></div>
+          <div class="field"><label>Roll No</label><input id="s_roll"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Father Name</label><input id="s_father"></div>
+          <div class="field"><label>Parent WhatsApp/Phone</label><input id="s_phone" placeholder="9876543210"></div>
+          <div class="field"><label>Monthly Fee (₹)</label><input id="s_fee" type="number" value="500"></div>
+        </div>
+        <button class="btn" onclick="addStudent()">Student Jodein</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Sabhi Students (<span id="studentCount">0</span>)</h3>
+        <table>
+          <thead><tr><th>Naam</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th></tr></thead>
+          <tbody id="studentTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE -->
+    <div class="panel" id="panel-attendance">
+      <div class="card">
+        <div class="row">
+          <div class="field"><label>Class</label><select id="att_class"></select></div>
+          <div class="field"><label>Date</label><input id="att_date" type="date"></div>
+        </div>
+        <button class="btn-ghost" onclick="loadAttendanceRoster()">Roster Load Karein</button>
+        <div id="att_roster" style="margin-top:16px;"></div>
+        <button class="btn" style="margin-top:14px; display:none;" id="att_save_btn" onclick="saveAttendance()">Attendance Save Karein (Parents ko msg jayega)</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Register Download Karein</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="exp_class"></select></div>
+          <div class="field"><label>Month</label><input id="exp_month" type="month"></div>
+        </div>
+        <button class="btn-ghost" onclick="downloadRegister()">Monthly Register (Excel/CSV) Download</button>
+      </div>
+    </div>
+
+    <!-- FEES -->
+    <div class="panel" id="panel-fees">
+      <div class="card">
+        <div class="row">
+          <div class="field"><label>Month</label><input id="fee_month" type="month"></div>
+          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadFees()">Load Karein</button></div>
+        </div>
+        <table style="margin-top:14px;">
+          <thead><tr><th>Naam</th><th>Class</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="feeTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NOTICES -->
+    <div class="panel" id="panel-notices">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Notice / Chutti Bhejein</h3>
+        <div class="row">
+          <div class="field"><label>Kisko</label>
+            <select id="notice_class"><option value="all">Sabko (Poora School)</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Message</label><textarea id="notice_msg" rows="3" placeholder="jaise: Kal school mein chutti rahegi."></textarea></div>
+        <button class="btn" onclick="sendNotice()">WhatsApp/SMS Bhejein</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Pichle Notices</h3>
+        <div id="noticeList" class="dim">Loading...</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel" id="panel-results">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Result Entry</h3>
+        <div class="row">
+          <div class="field"><label>Exam</label>
+            <select id="res_exam">
+              <option>Monthly Test</option>
+              <option>Half Yearly</option>
+              <option>Annual Exam</option>
+            </select>
+          </div>
+          <div class="field"><label>Class</label><select id="res_class"></select></div>
+          <div class="field"><label>Subject</label><input id="res_subject" placeholder="jaise: Maths"></div>
+          <div class="field"><label>Max Marks</label><input id="res_max" type="number" value="100"></div>
+        </div>
+        <button class="btn-ghost" onclick="loadResultRoster()">Students Load Karein</button>
+        <div id="res_roster" style="margin-top:14px;"></div>
+        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Parents ko WhatsApp/SMS bhejein</label><br>
+        <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Marks Save Karein</button>
+      </div>
+    </div>
+
+    <!-- HOMEWORK -->
+    <div class="panel" id="panel-homework">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Aaj Ka Homework Bhejein</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="hw_class"></select></div>
+          <div class="field"><label>Date</label><input id="hw_date" type="date"></div>
+        </div>
+        <div class="field"><label>Homework (text)</label><textarea id="hw_text" rows="4" placeholder="jaise: Maths - Ex 4.2 Q1-10, Hindi - Path 6 yaad karein"></textarea></div>
+        <div class="field"><label>Photo Link (agar copy ki hui photo kahin upload ki ho — Google Photos/Imgur link paste karein)</label><input id="hw_image" placeholder="https://..."></div>
+        <button class="btn" onclick="sendHomework()">Homework Bhejein (Parents ko link jayega)</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Pichla Homework</h3>
+        <div class="row" style="margin-bottom:10px;">
+          <div class="field"><label>Class</label><select id="hw_view_class"></select></div>
+          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadHomeworkHistory()">Dekhein</button></div>
+        </div>
+        <div id="hwList" class="dim">-</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const slug = params.get('school');
+let PIN = '';
+let SCHOOL = null;
+let STUDENTS = [];
+
+function showMsg(text, ok){
+  const el = document.getElementById('msg');
+  el.textContent = text; el.className = ok ? 'ok' : 'err';
+  setTimeout(() => { el.textContent=''; }, 4000);
+}
+
+async function init(){
+  if(!slug){ document.getElementById('loginSchoolName').textContent = 'School link galat hai (?school=slug missing).'; return; }
+  const res = await fetch('/api/schools?slug=' + encodeURIComponent(slug));
+  const school = await res.json();
+  if(!school){ document.getElementById('loginSchoolName').textContent = 'School nahi mila.'; return; }
+  SCHOOL = school;
+  document.getElementById('loginSchoolName').textContent = school.name;
+}
+init();
+
+async function login(){
+  PIN = document.getElementById('pinInput').value.trim();
+  try{
+    const res = await fetch(`/api/students?slug=${slug}&pin=${PIN}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Login fail');
+    SCHOOL = data.school;
+    STUDENTS = data.students || [];
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    document.getElementById('schoolNameHeader').textContent = SCHOOL.name;
+    renderStudents();
+    populateClassDropdowns();
+    setDefaultDates();
+    loadNotices();
+  }catch(e){
+    document.getElementById('loginMsg').textContent = 'Galat PIN ya error: ' + e.message;
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+function setDefaultDates(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('att_date').value = today;
+  document.getElementById('fee_month').value = today.slice(0,7);
+  document.getElementById('exp_month').value = today.slice(0,7);
+  document.getElementById('hw_date').value = today;
+}
+
+function populateClassDropdowns(){
+  const classes = [...new Set(STUDENTS.map(s=>s.class))].sort();
+  const selects = ['att_class','exp_class','res_class','hw_class','hw_view_class'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  });
+  const noticeSel = document.getElementById('notice_class');
+  noticeSel.innerHTML = '<option value="all">Sabko (Poora School)</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function renderStudents(){
+  document.getElementById('studentCount').textContent = STUDENTS.length;
+  document.getElementById('studentTable').innerHTML = STUDENTS.map(s => `
+    <tr><td>${s.name}</td><td>${s.class}</td><td>${s.roll_no||'-'}</td><td>${s.parent_phone}</td><td>₹${s.monthly_fee||0}</td></tr>
+  `).join('');
+}
+
+async function addStudent(){
+  const body = {
+    slug, pin: PIN,
+    name: document.getElementById('s_name').value.trim(),
+    class: document.getElementById('s_class').value.trim(),
+    roll_no: document.getElementById('s_roll').value.trim(),
+    father_name: document.getElementById('s_father').value.trim(),
+    parent_phone: document.getElementById('s_phone').value.trim(),
+    monthly_fee: Number(document.getElementById('s_fee').value) || 0,
+  };
+  if(!body.name || !body.class || !body.parent_phone){ showMsg('Naam, Class aur Phone zaroori hai', false); return; }
+  const res = await fetch('/api/students', { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  STUDENTS.push(data.student);
+  renderStudents(); populateClassDropdowns();
+  ['s_name','s_class','s_roll','s_father','s_phone'].forEach(id => document.getElementById(id).value='');
+  showMsg('Student jud gaya!', true);
+}
+
+// ---------- ATTENDANCE ----------
+let attendanceState = {};
+function loadAttendanceRoster(){
+  const cls = document.getElementById('att_class').value;
+  const roster = STUDENTS.filter(s => s.class === cls);
+  attendanceState = {};
+  roster.forEach(s => attendanceState[s.id] = 'present');
+  document.getElementById('att_roster').innerHTML = roster.map(s => `
+    <div class="row" style="margin-bottom:8px; align-items:center;">
+      <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
+      <div class="toggle-row" style="flex:2;">
+        <div class="toggle-btn present active" onclick="setAtt('${s.id}','present',this)">Present</div>
+        <div class="toggle-btn absent" onclick="setAtt('${s.id}','absent',this)">Absent</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('att_save_btn').style.display = roster.length ? 'inline-block' : 'none';
+}
+function setAtt(id, status, el){
+  attendanceState[id] = status;
+  const row = el.parentElement;
+  row.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+async function saveAttendance(){
+  const cls = document.getElementById('att_class').value;
+  const date = document.getElementById('att_date').value;
+  const records = Object.entries(attendanceState).map(([student_id,status]) => ({student_id, status}));
+  if(!records.length){ showMsg('Pehle roster load karein', false); return; }
+  const res = await fetch('/api/attendance', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: cls, date, records }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Attendance save ho gayi (${data.saved} students), parents ko msg chala gaya.`, true);
+}
+
+async function downloadRegister(){
+  const cls = document.getElementById('exp_class').value;
+  const month = document.getElementById('exp_month').value; // YYYY-MM
+  const from = month + '-01';
+  const toDate = new Date(month + '-01'); toDate.setMonth(toDate.getMonth()+1); toDate.setDate(0);
+  const to = toDate.toISOString().slice(0,10);
+  const res = await fetch(`/api/attendance?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}&from=${from}&to=${to}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+
+  const roster = STUDENTS.filter(s => s.class === cls);
+  const days = toDate.getDate();
+  const dateCols = Array.from({length: days}, (_,i) => String(i+1).padStart(2,'0'));
+
+  const byStudentDate = {};
+  (data.attendance||[]).forEach(a => {
+    byStudentDate[a.student_id] = byStudentDate[a.student_id] || {};
+    byStudentDate[a.student_id][a.date.slice(8,10)] = a.status === 'present' ? 'P' : 'A';
+  });
+
+  let csv = 'Roll No,Name,' + dateCols.join(',') + '\n';
+  roster.forEach(s => {
+    const row = [s.roll_no||'', s.name, ...dateCols.map(d => (byStudentDate[s.id]||{})[d] || '')];
+    csv += row.map(v => `"${v}"`).join(',') + '\n';
+  });
+
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${cls}-attendance-${month}.csv`;
+  link.click();
+}
+
+// ---------- FEES ----------
+async function loadFees(){
+  const month = document.getElementById('fee_month').value;
+  const res = await fetch(`/api/fees?slug=${slug}&pin=${PIN}&month=${month}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  document.getElementById('feeTable').innerHTML = data.students.map(s => `
+    <tr>
+      <td>${s.name}</td><td>${s.class}</td><td>₹${s.monthly_fee}</td>
+      <td><span class="pill ${s.paid?'paid':'due'}">${s.paid?'Paid':'Due'}</span></td>
+      <td>
+        ${s.paid ? '-' : `<button class="btn-ghost btn-small" onclick="markPaid('${s.id}', ${s.monthly_fee}, '${month}')">Mark Paid</button>
+        <button class="btn-ghost btn-small" onclick="sendReminder('${s.id}')">Remind</button>`}
+      </td>
+    </tr>
+  `).join('');
+}
+async function markPaid(student_id, amount, month){
+  const res = await fetch('/api/fees', { method:'POST', body: JSON.stringify({ slug, pin: PIN, student_id, amount, month }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Fees mark ho gayi, WhatsApp receipt bhej diya.', true);
+  loadFees();
+}
+async function sendReminder(student_id){
+  const res = await fetch('/api/fees', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'reminder', student_id }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Reminder bhej diya.', true);
+}
+
+// ---------- NOTICES ----------
+async function sendNotice(){
+  const className = document.getElementById('notice_class').value;
+  const message = document.getElementById('notice_msg').value.trim();
+  if(!message){ showMsg('Message likhein', false); return; }
+  const res = await fetch('/api/notices', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, message }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Notice bhej diya (${data.sentTo} parents ko).`, true);
+  document.getElementById('notice_msg').value='';
+  loadNotices();
+}
+async function loadNotices(){
+  const res = await fetch(`/api/notices?slug=${slug}&pin=${PIN}`);
+  const data = await res.json();
+  if(!res.ok) return;
+  const box = document.getElementById('noticeList');
+  if(!data.notices.length){ box.textContent='Koi notice nahi hai abhi.'; return; }
+  box.innerHTML = data.notices.map(n => `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><b>${n.class==='all'?'Sabko':n.class}:</b> ${n.message} <span class="dim">(${new Date(n.created_at).toLocaleDateString()})</span></div>`).join('');
+}
+
+// ---------- RESULTS ----------
+let resultRoster = [];
+function loadResultRoster(){
+  const cls = document.getElementById('res_class').value;
+  resultRoster = STUDENTS.filter(s => s.class === cls);
+  document.getElementById('res_roster').innerHTML = resultRoster.map(s => `
+    <div class="row" style="margin-bottom:8px;">
+      <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
+      <input type="number" placeholder="Marks" id="marks_${s.id}" style="flex:1;">
+    </div>
+  `).join('');
+  document.getElementById('res_save_btn').style.display = resultRoster.length ? 'inline-block' : 'none';
+}
+async function saveResults(){
+  const exam_name = document.getElementById('res_exam').value;
+  const subject = document.getElementById('res_subject').value.trim();
+  const max_marks = Number(document.getElementById('res_max').value) || 100;
+  const notify = document.getElementById('res_notify').checked;
+  if(!subject){ showMsg('Subject likhein', false); return; }
+  const entries = resultRoster.map(s => ({
+    student_id: s.id, subject, max_marks,
+    marks_obtained: Number(document.getElementById('marks_'+s.id).value) || 0,
+  }));
+  const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, exam_name, entries, notify }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Marks save ho gaye (${data.saved} students).`, true);
+}
+
+// ---------- HOMEWORK ----------
+async function sendHomework(){
+  const className = document.getElementById('hw_class').value;
+  const date = document.getElementById('hw_date').value;
+  const text = document.getElementById('hw_text').value.trim();
+  const image_url = document.getElementById('hw_image').value.trim();
+  if(!text && !image_url){ showMsg('Homework text ya photo link daalein', false); return; }
+  const res = await fetch('/api/homework', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, date, text, image_url }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Homework bhej diya (${data.sentTo} parents ko link gaya).`, true);
+  document.getElementById('hw_text').value=''; document.getElementById('hw_image').value='';
+}
+async function loadHomeworkHistory(){
+  const className = document.getElementById('hw_view_class').value;
+  const res = await fetch(`/api/homework?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(className)}`);
+  const data = await res.json();
+  const box = document.getElementById('hwList');
+  if(!res.ok){ box.textContent = data.error; return; }
+  if(!data.homework.length){ box.textContent = 'Is class ka koi homework nahi hai abhi.'; return; }
+  box.innerHTML = data.homework.map(h => `
+    <div style="padding:8px 0; border-bottom:1px solid var(--line);">
+      <b>${new Date(h.date).toLocaleDateString('en-IN')}:</b> ${h.text || ''} ${h.image_url ? '📷' : ''}
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
