@@ -19,7 +19,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === "POST") {
       const body = JSON.parse(event.body || "{}");
       const school = await verifyPin(supabase, body.slug, body.pin);
-      const { name, class: className, roll_no, father_name, mother_name, parent_phone, monthly_fee } = body;
+      const { name, class: className, roll_no, father_name, mother_name, parent_phone, monthly_fee, dob, photo_url } = body;
       if (!name || !className || !parent_phone) {
         return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Name, class aur parent phone zaroori hai" }) };
       }
@@ -34,6 +34,8 @@ exports.handler = async (event) => {
           mother_name: mother_name || null,
           parent_phone,
           monthly_fee: monthly_fee || 0,
+          dob: dob || null,
+          photo_url: photo_url || null,
         })
         .select()
         .single();

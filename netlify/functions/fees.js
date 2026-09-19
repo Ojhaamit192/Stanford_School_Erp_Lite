@@ -50,7 +50,8 @@ exports.handler = async (event) => {
         if (error) throw error;
         await sendSms(
           student.parent_phone,
-          `${school.name}: ${student.name} ki is mahine ki fee (₹${student.monthly_fee}) abhi due hai. Kripya jald bhugtan karein.`
+          `${school.name}: ${student.name} ki is mahine ki fee (₹${student.monthly_fee}) abhi due hai. Kripya jald bhugtan karein.`,
+          { supabase, schoolId: school.id }
         );
         return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ sent: true }) };
       }
@@ -73,7 +74,8 @@ exports.handler = async (event) => {
       if (student) {
         await sendSms(
           student.parent_phone,
-          `${school.name}: Rasid - ${student.name} ki fees ₹${amount} (${targetMonth}) mil gayi hai. Dhanyawad.`
+          `${school.name}: Rasid - ${student.name} ki fees ₹${amount} (${targetMonth}) mil gayi hai. Dhanyawad.`,
+          { supabase, schoolId: school.id }
         );
       }
 

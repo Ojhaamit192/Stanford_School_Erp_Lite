@@ -1,5 +1,5 @@
 const { CORS_HEADERS, verifyPin } = require("./_shared");
-const { getSupabase, todayDate } = require("./_supabase");
+const { getSupabase } = require("./_supabase");
 const { sendSms } = require("./_sms");
 
 exports.handler = async (event) => {
@@ -8,46 +8,43 @@ exports.handler = async (event) => {
 
   try {
     if (event.httpMethod === "GET") {
-      // Two uses:
-      // 1) Staff panel (needs pin): ?slug&pin&class=Class 7  -> last 10 entries for that class
-      // 2) Public view page (no pin): ?slug&class=Class 7&public=1 -> last 5 entries, school name only
+      // Two uses, same as homework.js:
+      // 1) Staff panel (needs pin): ?slug&pin&class=Class 7
+      // 2) Public view page (no pin): ?slug&class=Class 7&public=1
       const { slug, pin, class: className, public: isPublic } = event.queryStringParameters || {};
       const { data: school, error: schoolErr } = await supabase.from("schools").select("*").eq("slug", slug).single();
       if (schoolErr || !school) throw new Error("School not found");
       if (!isPublic) await verifyPin(supabase, slug, pin);
 
       let query = supabase
-        .from("homework")
-        .select("class, date, text, image_url, created_at")
+        .from("datesheets")
+        .select("class, exam_name, text, created_at")
         .eq("school_id", school.id)
-        .order("date", { ascending: false })
-        .limit(isPublic ? 5 : 10);
+        .order("created_at", { ascending: false })
+        .limit(isPublic ? 3 : 10);
       if (className && className !== "all") query = query.eq("class", className);
       const { data, error } = await query;
       if (error) throw error;
-      return {
-        statusCode: 200,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ school: { name: school.name }, homework: data }),
-      };
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ school: { name: school.name }, datesheets: data }) };
     }
 
     if (event.httpMethod === "POST") {
-      // { slug, pin, class, date, text, image_url }
+      // { slug, pin, class, exam_name, text }
       const body = JSON.parse(event.body || "{}");
       const school = await verifyPin(supabase, body.slug, body.pin);
       const className = body.class;
-      if (!className || (!body.text && !body.image_url)) {
-        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Class aur text/photo link mein se kam se kam ek zaroori hai" }) };
+      const examName = body.exam_name;
+      const text = body.text;
+      if (!className || !examName || !text) {
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Class, exam name aur datesheet text zaroori hai" }) };
       }
-      const date = body.date || todayDate();
 
-      const { data: hw, error: hwErr } = await supabase
-        .from("homework")
-        .insert({ school_id: school.id, class: className, date, text: body.text || null, image_url: body.image_url || null })
+      const { data: ds, error: dsErr } = await supabase
+        .from("datesheets")
+        .insert({ school_id: school.id, class: className, exam_name: examName, text })
         .select()
         .single();
-      if (hwErr) throw hwErr;
+      if (dsErr) throw dsErr;
 
       const { data: students, error: sErr } = await supabase
         .from("students")
@@ -58,13 +55,12 @@ exports.handler = async (event) => {
       if (sErr) throw sErr;
 
       const uniquePhones = [...new Set((students || []).map((s) => s.parent_phone))];
-      const viewLink = `${process.env.URL || ""}/homework.html?school=${school.slug}&class=${encodeURIComponent(className)}`;
-      const preview = body.text ? body.text.slice(0, 80) : "Photo homework";
-      const msg = `${school.name}: ${className} ka aaj ka homework - ${preview}${viewLink ? `. Dekhein: ${viewLink}` : ""}`;
+      const viewLink = `${process.env.URL || ""}/datesheet.html?school=${school.slug}&class=${encodeURIComponent(className)}`;
+      const msg = `${school.name}: ${className} - ${examName} Datesheet:\n${text}${viewLink ? `\nDekhein: ${viewLink}` : ""}`;
 
       await Promise.all(uniquePhones.map((phone) => sendSms(phone, msg, { supabase, schoolId: school.id })));
 
-      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ homework: hw, sentTo: uniquePhones.length }) };
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ datesheet: ds, sentTo: uniquePhones.length }) };
     }
 
     return { statusCode: 405, headers: CORS_HEADERS, body: JSON.stringify({ error: "Method not allowed" }) };

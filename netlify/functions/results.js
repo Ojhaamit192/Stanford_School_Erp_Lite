@@ -61,7 +61,7 @@ exports.handler = async (event) => {
             const total = byStudent[sid].reduce((sum, e) => sum + Number(e.marks_obtained), 0);
             const maxTotal = byStudent[sid].reduce((sum, e) => sum + Number(e.max_marks || 100), 0);
             const msg = `${school.name}: ${info.name} - ${exam_name} result: ${total}/${maxTotal}.`;
-            return sendSms(info.parent_phone, msg);
+            return sendSms(info.parent_phone, msg, { supabase, schoolId: school.id });
           })
         );
       }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Homework</title>
+<title>Exam Datesheet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,9 +18,9 @@
   h1{font-size:1.5rem; margin-bottom:4px; text-align:center;}
   .sub{color:var(--text-dim); font-size:0.9rem; margin-bottom:24px; text-align:center;}
   .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
-  .date{color:var(--gold-soft); font-size:0.85rem; font-weight:600; margin-bottom:8px;}
+  .exam-name{color:var(--gold-soft); font-size:0.95rem; font-weight:600; margin-bottom:4px;}
+  .posted{color:var(--text-dim); font-size:0.78rem; margin-bottom:10px;}
   .card p{white-space:pre-wrap;}
-  .card img{width:100%; border-radius:8px; margin-top:10px;}
   .empty{color:var(--text-dim); text-align:center; padding:40px 0;}
 </style>
 </head>
@@ -28,34 +28,34 @@
 <div class="wrap">
   <div style="text-align:center; margin-bottom:8px;"><img src="assets/tejvix-logo.png" alt="Tejvix" style="height:44px; width:44px; border-radius:10px;"></div>
   <div class="eyebrow" id="schoolName" style="text-align:center;">Loading…</div>
-  <h1 id="className">Homework</h1>
-  <div class="sub">Pichle kuch din ka homework</div>
+  <h1 id="className">Exam Datesheet</h1>
+  <div class="sub">Pichli kuch datesheets</div>
   <div id="list"></div>
 </div>
 <script>
 const params = new URLSearchParams(location.search);
 const slug = params.get('school');
 const className = params.get('class');
-document.getElementById('className').textContent = className ? `${className} — Homework` : 'Homework';
+document.getElementById('className').textContent = className ? `${className} — Datesheet` : 'Datesheet';
 
 async function load(){
   const box = document.getElementById('list');
   if(!slug || !className){ box.innerHTML = '<p class="empty">Link galat hai.</p>'; return; }
   try{
-    const res = await fetch(`/api/homework?slug=${encodeURIComponent(slug)}&class=${encodeURIComponent(className)}&public=1`);
+    const res = await fetch(`/api/datesheet?slug=${encodeURIComponent(slug)}&class=${encodeURIComponent(className)}&public=1`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Load fail');
     document.getElementById('schoolName').textContent = data.school.name;
-    if(!data.homework.length){ box.innerHTML = '<p class="empty">Abhi koi homework nahi hai.</p>'; return; }
-    box.innerHTML = data.homework.map(h => `
+    if(!data.datesheets.length){ box.innerHTML = '<p class="empty">Abhi koi datesheet nahi hai.</p>'; return; }
+    box.innerHTML = data.datesheets.map(d => `
       <div class="card">
-        <div class="date">${new Date(h.date).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</div>
-        ${h.text ? `<p>${h.text}</p>` : ''}
-        ${h.image_url ? `<img src="${h.image_url}" alt="Homework photo">` : ''}
+        <div class="exam-name">${d.exam_name}</div>
+        <div class="posted">${new Date(d.created_at).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</div>
+        <p>${d.text}</p>
       </div>
     `).join('');
   }catch(e){
-    box.innerHTML = '<p class="empty">Homework load nahi ho paaya.</p>';
+    box.innerHTML = '<p class="empty">Datesheet load nahi ho paaya.</p>';
   }
 }
 load();

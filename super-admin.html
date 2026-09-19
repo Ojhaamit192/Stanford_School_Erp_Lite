@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin — School Lite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<style>
+  :root{ --bg:#0D0A08; --bg-panel:#1A130E; --line:#3D2A1A; --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:900px; margin:0 auto; padding:28px 18px 60px;}
+  .logo{display:flex; align-items:center; gap:10px; margin-bottom:24px;}
+  .logo img{height:34px; width:34px; border-radius:8px;}
+  input{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
+  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer; margin-top:10px;}
+  .btn:hover{background:var(--gold-soft);}
+  .login-box{max-width:340px; margin:80px auto; text-align:center;}
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
+  .totals{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:20px;}
+  .stat{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat .num{font-size:1.5rem; font-weight:700; color:var(--gold-soft); font-family:'Fraunces',serif;}
+  .stat .label{color:var(--text-dim); font-size:0.8rem; margin-top:2px;}
+  table{width:100%; border-collapse:collapse; font-size:0.88rem;}
+  th, td{text-align:left; padding:9px 6px; border-bottom:1px solid var(--line);}
+  th{color:var(--text-dim); font-weight:600; font-size:0.78rem;}
+  #err{color:#E0574A; font-size:0.85rem; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <div class="logo" style="justify-content:center;"><img src="assets/tejvix-logo.png" alt="Tejvix"></div>
+  <h2>Super Admin</h2>
+  <p style="color:var(--text-dim); font-size:0.85rem; margin:10px 0;">Sabhi schools ka combined view</p>
+  <input id="pwInput" type="password" placeholder="Master password">
+  <button class="btn" style="width:100%" onclick="load()">Dekhein</button>
+  <p id="err"></p>
+</div>
+
+<div id="dashScreen" class="wrap" style="display:none;">
+  <div class="logo"><img src="assets/tejvix-logo.png" alt="Tejvix"><div>Super Admin Dashboard</div></div>
+  <div class="totals" id="totals"></div>
+  <div class="card">
+    <h3 style="margin-bottom:12px;">School-wise</h3>
+    <table>
+      <thead><tr><th>School</th><th>Students</th><th>Is Mahine Collection</th><th>Attendance % (30 din)</th><th>Enquiries</th><th>Converted</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function load(){
+  const password = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('err');
+  try{
+    const res = await fetch(`/api/super-admin?password=${encodeURIComponent(password)}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Fail');
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashScreen').style.display = 'block';
+
+    document.getElementById('totals').innerHTML = `
+      <div class="stat"><div class="num">${data.schools.length}</div><div class="label">Schools</div></div>
+      <div class="stat"><div class="num">${data.totals.students}</div><div class="label">Total Students</div></div>
+      <div class="stat"><div class="num">₹${data.totals.collection}</div><div class="label">Is Mahine Collection</div></div>
+      <div class="stat"><div class="num">${data.totals.converted}/${data.totals.enquiries}</div><div class="label">Enquiry → Admission</div></div>
+    `;
+    document.getElementById('rows').innerHTML = data.schools.map(s => `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.students}</td>
+        <td>₹${s.collectionThisMonth}</td>
+        <td>${s.attendancePct === null ? '-' : s.attendancePct + '%'}</td>
+        <td>${s.enquiries}</td>
+        <td>${s.converted}</td>
+      </tr>
+    `).join('');
+  }catch(e){
+    errEl.textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>

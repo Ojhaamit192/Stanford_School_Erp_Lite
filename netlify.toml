@@ -2,6 +2,15 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions."bunk-alert"]
+  schedule = "0 10 * * *" # 10:00 UTC = 3:30 PM IST, daily
+
+[functions."monthly-summary"]
+  schedule = "30 3 1 * *" # 03:30 UTC on the 1st = 9:00 AM IST, monthly
+
+[functions."birthday-wish"]
+  schedule = "0 3 * * *" # 03:00 UTC = 8:30 AM IST, daily
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

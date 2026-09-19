@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#FF6A00">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
     --bg:#0D0A08; --bg-panel:#1A130E; --bg-panel-2:#241A12; --line:#3D2A1A;
@@ -20,8 +22,10 @@
   .wrap{max-width:900px; margin:0 auto; padding:24px 16px 80px;}
   header{border-bottom:1px solid var(--line); padding:18px 0; margin-bottom:20px;}
   header .wrap{display:flex; justify-content:space-between; align-items:center; padding-top:0; padding-bottom:0;}
-  .logo{font-size:1.2rem; font-weight:600;}
+  .logo{display:flex; align-items:center; gap:10px; font-size:1.05rem; font-weight:600;}
+  .logo img{height:32px; width:32px; border-radius:8px;}
   .logo span{color:var(--gold-soft);}
+  .logo small{display:block; color:var(--text-dim); font-weight:400; font-size:0.68rem; letter-spacing:0.04em;}
   .school-name{color:var(--text-dim); font-size:0.9rem;}
 
   input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
@@ -69,6 +73,7 @@
 <body>
 
 <div id="loginScreen" class="login-box">
+  <img src="assets/tejvix-logo.png" alt="Tejvix" style="height:56px; width:56px; border-radius:12px; margin-bottom:14px;">
   <h2>Staff Login</h2>
   <p class="dim" id="loginSchoolName" style="margin-bottom:18px;"></p>
   <div class="field"><input id="pinInput" placeholder="PIN daalein" type="password" inputmode="numeric"></div>
@@ -78,29 +83,54 @@
 
 <div id="appScreen" style="display:none;">
   <header><div class="wrap">
-    <div class="logo">School<span>Lite</span></div>
+    <div class="logo"><img src="assets/tejvix-logo.png" alt="Tejvix"><div>School<span>Lite</span><small>by TEJVIX · tejvix.com</small></div></div>
     <div class="school-name" id="schoolNameHeader"></div>
   </div></header>
 
   <div class="wrap">
     <div class="tabs">
-      <div class="tab active" data-tab="students">Students</div>
+      <div class="tab active" data-tab="dashboard">Dashboard</div>
+      <div class="tab" data-tab="students">Students</div>
       <div class="tab" data-tab="attendance">Attendance</div>
       <div class="tab" data-tab="fees">Fees</div>
       <div class="tab" data-tab="notices">Notices</div>
       <div class="tab" data-tab="results">Results</div>
       <div class="tab" data-tab="homework">Homework</div>
+      <div class="tab" data-tab="datesheet">Datesheet</div>
+      <div class="tab" data-tab="msglog">Message Log</div>
     </div>
 
     <div id="msg"></div>
 
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Attendance Trend (Pichle 14 din)</h3>
+        <canvas id="attendanceChart" height="140"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Fees Collection (Pichle 6 mahine)</h3>
+        <canvas id="feesChart" height="140"></canvas>
+      </div>
+      <div class="card">
+        <div class="row" style="margin-bottom:10px; align-items:center;">
+          <h3>Admission Enquiries</h3>
+          <div id="enqStats" class="dim" style="text-align:right;"></div>
+        </div>
+        <table>
+          <thead><tr><th>Naam</th><th>Phone</th><th>Class</th><th>Kab</th><th>Status</th></tr></thead>
+          <tbody id="enqTable"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- STUDENTS -->
-    <div class="panel active" id="panel-students">
+    <div class="panel" id="panel-students">
       <div class="card">
         <h3 style="margin-bottom:14px;">Naya Student Jodein</h3>
         <div class="row">
           <div class="field"><label>Naam</label><input id="s_name"></div>
-          <div class="field"><label>Class</label><input id="s_class" placeholder="jaise: Class 8"></div>
+          <div class="field"><label>Class</label><select id="s_class"></select></div>
           <div class="field"><label>Roll No</label><input id="s_roll"></div>
         </div>
         <div class="row">
@@ -108,6 +138,14 @@
           <div class="field"><label>Parent WhatsApp/Phone</label><input id="s_phone" placeholder="9876543210"></div>
           <div class="field"><label>Monthly Fee (₹)</label><input id="s_fee" type="number" value="500"></div>
         </div>
+        <div class="row">
+          <div class="field"><label>Date of Birth</label><input id="s_dob" type="date"></div>
+          <div class="field"><label>Photo (ID Card ke liye, optional)</label>
+            <input type="file" id="s_photo_file" accept="image/*" onchange="uploadPhoto(this, 's_photo_url', 's_photo_status')">
+            <div id="s_photo_status" class="dim" style="margin-top:4px;"></div>
+          </div>
+        </div>
+        <input type="hidden" id="s_photo_url">
         <button class="btn" onclick="addStudent()">Student Jodein</button>
       </div>
 
@@ -117,6 +155,15 @@
           <thead><tr><th>Naam</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th></tr></thead>
           <tbody id="studentTable"></tbody>
         </table>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px;">ID Card (PDF)</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="idc_class"></select></div>
+          <div class="field"><label>Student</label><select id="idc_student"><option value="">Pehle class load karein</option></select></div>
+        </div>
+        <button class="btn-ghost" onclick="loadIdCardStudents()">Students Load Karein</button>
+        <button class="btn" style="margin-top:10px;" onclick="downloadIdCard()">ID Card Download Karein</button>
       </div>
     </div>
 
@@ -195,6 +242,16 @@
         <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Parents ko WhatsApp/SMS bhejein</label><br>
         <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Marks Save Karein</button>
       </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Report Card (PDF)</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="rc_class"></select></div>
+          <div class="field"><label>Student</label><select id="rc_student"><option value="">Pehle class load karein</option></select></div>
+        </div>
+        <button class="btn-ghost" onclick="loadReportCardStudents()">Students Load Karein</button>
+        <button class="btn" style="margin-top:10px;" onclick="downloadReportCard()">Report Card PDF Download Karein</button>
+      </div>
     </div>
 
     <!-- HOMEWORK -->
@@ -206,7 +263,11 @@
           <div class="field"><label>Date</label><input id="hw_date" type="date"></div>
         </div>
         <div class="field"><label>Homework (text)</label><textarea id="hw_text" rows="4" placeholder="jaise: Maths - Ex 4.2 Q1-10, Hindi - Path 6 yaad karein"></textarea></div>
-        <div class="field"><label>Photo Link (agar copy ki hui photo kahin upload ki ho — Google Photos/Imgur link paste karein)</label><input id="hw_image" placeholder="https://..."></div>
+        <div class="field"><label>Photo (seedha camera/gallery se upload karein)</label>
+          <input type="file" id="hw_photo_file" accept="image/*" onchange="uploadPhoto(this, 'hw_image', 'hw_photo_status')">
+          <div id="hw_photo_status" class="dim" style="margin-top:6px;"></div>
+        </div>
+        <div class="field"><label>Ya Photo Link (agar kahin pehle se upload hai)</label><input id="hw_image" placeholder="https://..."></div>
         <button class="btn" onclick="sendHomework()">Homework Bhejein (Parents ko link jayega)</button>
       </div>
       <div class="card">
@@ -219,6 +280,41 @@
       </div>
     </div>
 
+    <!-- DATESHEET -->
+    <div class="panel" id="panel-datesheet">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Exam Datesheet Bhejein</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="ds_class"></select></div>
+          <div class="field"><label>Exam Naam</label><input id="ds_exam" placeholder="jaise: Half Yearly Exam"></div>
+        </div>
+        <div class="field"><label>Datesheet (har line ek din)</label><textarea id="ds_text" rows="5" placeholder="jaise:&#10;25 Sept - Hindi&#10;26 Sept - Maths&#10;27 Sept - Science"></textarea></div>
+        <button class="btn" onclick="sendDatesheet()">Datesheet Bhejein (Parents ko link jayega)</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Pichli Datesheets</h3>
+        <div class="row" style="margin-bottom:10px;">
+          <div class="field"><label>Class</label><select id="ds_view_class"></select></div>
+          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadDatesheetHistory()">Dekhein</button></div>
+        </div>
+        <div id="dsList" class="dim">-</div>
+      </div>
+    </div>
+
+    <!-- MESSAGE LOG -->
+    <div class="panel" id="panel-msglog">
+      <div class="card">
+        <div class="row" style="margin-bottom:10px;">
+          <h3>Bheje Gaye Messages (Pichle 50)</h3>
+          <div style="text-align:right;"><button class="btn-ghost" onclick="loadMessageLog()">Refresh</button></div>
+        </div>
+        <table>
+          <thead><tr><th>Kab</th><th>Kisko</th><th>Message</th><th>Status</th></tr></thead>
+          <tbody id="msgLogTable"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -228,6 +324,7 @@ const slug = params.get('school');
 let PIN = '';
 let SCHOOL = null;
 let STUDENTS = [];
+const CLASS_LIST = ['Prep', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 function showMsg(text, ok){
   const el = document.getElementById('msg');
@@ -260,6 +357,8 @@ async function login(){
     populateClassDropdowns();
     setDefaultDates();
     loadNotices();
+    loadDashboard();
+    loadEnquiries();
   }catch(e){
     document.getElementById('loginMsg').textContent = 'Galat PIN ya error: ' + e.message;
   }
@@ -280,15 +379,67 @@ function setDefaultDates(){
   document.getElementById('hw_date').value = today;
 }
 
-function populateClassDropdowns(){
-  const classes = [...new Set(STUDENTS.map(s=>s.class))].sort();
-  const selects = ['att_class','exp_class','res_class','hw_class','hw_view_class'];
-  selects.forEach(id => {
-    const el = document.getElementById(id);
-    el.innerHTML = classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+// ---------- DASHBOARD ----------
+let attendanceChartRef = null, feesChartRef = null;
+async function loadDashboard(){
+  const res = await fetch(`/api/dashboard?slug=${slug}&pin=${PIN}`);
+  const data = await res.json();
+  if(!res.ok) return;
+
+  const attCtx = document.getElementById('attendanceChart');
+  if(attendanceChartRef) attendanceChartRef.destroy();
+  attendanceChartRef = new Chart(attCtx, {
+    type: 'line',
+    data: {
+      labels: data.attendanceTrend.map(d => d.date.slice(5)),
+      datasets: [{
+        label: '% Present',
+        data: data.attendanceTrend.map(d => d.pct),
+        borderColor: '#FF6A00',
+        backgroundColor: 'rgba(255,106,0,0.15)',
+        spanGaps: true,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      scales: {
+        y: { min:0, max:100, ticks:{ color:'#C9B29A' }, grid:{ color:'#3D2A1A' } },
+        x: { ticks:{ color:'#C9B29A' }, grid:{ color:'#3D2A1A' } }
+      },
+      plugins: { legend: { labels:{ color:'#F5F0EA' } } }
+    }
   });
-  const noticeSel = document.getElementById('notice_class');
-  noticeSel.innerHTML = '<option value="all">Sabko (Poora School)</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  const feeCtx = document.getElementById('feesChart');
+  if(feesChartRef) feesChartRef.destroy();
+  feesChartRef = new Chart(feeCtx, {
+    type: 'bar',
+    data: {
+      labels: data.feesTrend.map(d => d.month),
+      datasets: [{
+        label: 'Collection (₹)',
+        data: data.feesTrend.map(d => d.total),
+        backgroundColor: '#FFB020',
+      }]
+    },
+    options: {
+      scales: {
+        y: { ticks:{ color:'#C9B29A' }, grid:{ color:'#3D2A1A' } },
+        x: { ticks:{ color:'#C9B29A' }, grid:{ color:'#3D2A1A' } }
+      },
+      plugins: { legend: { labels:{ color:'#F5F0EA' } } }
+    }
+  });
+}
+
+function populateClassDropdowns(){
+  const options = CLASS_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
+  ['att_class','exp_class','res_class','hw_class','hw_view_class','rc_class','idc_class','ds_class','ds_view_class'].forEach(id => {
+    document.getElementById(id).innerHTML = options;
+  });
+  document.getElementById('s_class').innerHTML = '<option value="">Class Chunein</option>' + options;
+  document.getElementById('notice_class').innerHTML = '<option value="all">Sabko (Poora School)</option>' + options;
 }
 
 function renderStudents(){
@@ -307,6 +458,8 @@ async function addStudent(){
     father_name: document.getElementById('s_father').value.trim(),
     parent_phone: document.getElementById('s_phone').value.trim(),
     monthly_fee: Number(document.getElementById('s_fee').value) || 0,
+    dob: document.getElementById('s_dob').value || null,
+    photo_url: document.getElementById('s_photo_url').value || null,
   };
   if(!body.name || !body.class || !body.parent_phone){ showMsg('Naam, Class aur Phone zaroori hai', false); return; }
   const res = await fetch('/api/students', { method:'POST', body: JSON.stringify(body) });
@@ -314,7 +467,8 @@ async function addStudent(){
   if(!res.ok){ showMsg(data.error, false); return; }
   STUDENTS.push(data.student);
   renderStudents(); populateClassDropdowns();
-  ['s_name','s_class','s_roll','s_father','s_phone'].forEach(id => document.getElementById(id).value='');
+  ['s_name','s_class','s_roll','s_father','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('s_photo_status').textContent='';
   showMsg('Student jud gaya!', true);
 }
 
@@ -467,6 +621,229 @@ async function saveResults(){
   showMsg(`Marks save ho gaye (${data.saved} students).`, true);
 }
 
+// ---------- REPORT CARD PDF ----------
+function loadReportCardStudents(){
+  const cls = document.getElementById('rc_class').value;
+  const roster = STUDENTS.filter(s => s.class === cls);
+  const sel = document.getElementById('rc_student');
+  if(!roster.length){ sel.innerHTML = '<option value="">Is class mein koi student nahi</option>'; return; }
+  sel.innerHTML = roster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
+}
+async function downloadReportCard(){
+  const cls = document.getElementById('rc_class').value;
+  const studentId = document.getElementById('rc_student').value;
+  if(!studentId){ showMsg('Pehle student select karein', false); return; }
+  const res = await fetch(`/api/results?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  const allEntries = data.results || [];
+  const entries = allEntries.filter(r => r.student_id === studentId);
+  if(!entries.length){ showMsg('Is student ka koi result nahi mila', false); return; }
+  const student = STUDENTS.find(s => s.id === studentId);
+
+  // Totals per student per exam (for rank), from the same class-wide fetch — no extra API call needed.
+  const totalsByExam = {}; // { examName: { studentId: {total, name} } }
+  allEntries.forEach(e => {
+    totalsByExam[e.exam_name] = totalsByExam[e.exam_name] || {};
+    const t = totalsByExam[e.exam_name];
+    t[e.student_id] = t[e.student_id] || { total: 0, name: e.students?.name || '' };
+    t[e.student_id].total += Number(e.marks_obtained);
+  });
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.text(SCHOOL.name, 14, 18);
+  doc.setFontSize(11); doc.text(`Report Card — ${student.name} (${student.class}, Roll ${student.roll_no||'-'})`, 14, 27);
+  doc.setDrawColor(255, 106, 0); doc.line(14, 31, 196, 31);
+
+  let y = 42;
+  const byExam = {};
+  entries.forEach(e => { byExam[e.exam_name] = byExam[e.exam_name] || []; byExam[e.exam_name].push(e); });
+
+  Object.entries(byExam).forEach(([examName, subs]) => {
+    if(y > 260){ doc.addPage(); y = 20; }
+    doc.setFontSize(13); doc.setTextColor(200,90,0); doc.text(examName, 14, y); y += 8;
+    doc.setFontSize(10); doc.setTextColor(0,0,0);
+    let total = 0, maxTotal = 0;
+    subs.forEach(s => {
+      doc.text(`${s.subject}`, 18, y);
+      doc.text(`${s.marks_obtained} / ${s.max_marks}`, 160, y);
+      total += Number(s.marks_obtained); maxTotal += Number(s.max_marks);
+      y += 6;
+    });
+
+    // Rank: sort every student's total for this exam, descending.
+    const examTotals = Object.entries(totalsByExam[examName] || {}).map(([sid, v]) => ({ sid, total: v.total }));
+    examTotals.sort((a,b) => b.total - a.total);
+    const position = examTotals.findIndex(e => e.sid === studentId) + 1;
+
+    doc.setFontSize(10); doc.setTextColor(0,0,0);
+    doc.text(`Total: ${total} / ${maxTotal}`, 18, y);
+    if(position > 0) doc.text(`Class Rank: ${position} / ${examTotals.length}`, 100, y);
+    y += 12;
+  });
+
+  doc.save(`${student.name.replace(/\s+/g,'_')}-report-card.pdf`);
+}
+
+// ---------- ENQUIRIES ----------
+async function loadEnquiries(){
+  const res = await fetch(`/api/enquiry?slug=${slug}&pin=${PIN}`);
+  const data = await res.json();
+  if(!res.ok) return;
+  const box = document.getElementById('enqTable');
+  const total = data.enquiries.length;
+  const converted = data.enquiries.filter(e => e.converted).length;
+  document.getElementById('enqStats').textContent = `${converted} / ${total} admission mein convert hui`;
+  if(!total){ box.innerHTML = '<tr><td colspan="5" class="dim">Koi enquiry nahi hai abhi.</td></tr>'; return; }
+  box.innerHTML = data.enquiries.map(e => `
+    <tr>
+      <td>${e.name}</td><td>${e.phone}</td><td>${e.class_interested||'-'}</td>
+      <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
+      <td>${e.converted ? '<span class="pill paid">Converted</span>' : `<button class="btn-ghost btn-small" onclick="convertEnquiry('${e.id}')">Mark Converted</button>`}</td>
+    </tr>
+  `).join('');
+}
+async function convertEnquiry(id){
+  const res = await fetch('/api/enquiry', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'convert', id }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Admission mein convert mark kar diya.', true);
+  loadEnquiries();
+}
+
+// ---------- DATESHEET ----------
+async function sendDatesheet(){
+  const className = document.getElementById('ds_class').value;
+  const exam_name = document.getElementById('ds_exam').value.trim();
+  const text = document.getElementById('ds_text').value.trim();
+  if(!exam_name || !text){ showMsg('Exam naam aur datesheet likhein', false); return; }
+  const res = await fetch('/api/datesheet', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, exam_name, text }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Datesheet bhej diya (${data.sentTo} parents ko).`, true);
+  document.getElementById('ds_exam').value=''; document.getElementById('ds_text').value='';
+}
+async function loadDatesheetHistory(){
+  const className = document.getElementById('ds_view_class').value;
+  const res = await fetch(`/api/datesheet?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(className)}`);
+  const data = await res.json();
+  const box = document.getElementById('dsList');
+  if(!res.ok){ box.textContent = data.error; return; }
+  if(!data.datesheets.length){ box.textContent = 'Is class ki koi datesheet nahi hai abhi.'; return; }
+  box.innerHTML = data.datesheets.map(d => `
+    <div style="padding:8px 0; border-bottom:1px solid var(--line);">
+      <b>${d.exam_name}</b> <span class="dim">(${new Date(d.created_at).toLocaleDateString('en-IN')})</span><br>
+      <span class="dim" style="white-space:pre-wrap;">${d.text}</span>
+    </div>
+  `).join('');
+}
+
+// ---------- MESSAGE LOG ----------
+async function loadMessageLog(){
+  const res = await fetch(`/api/message-log?slug=${slug}&pin=${PIN}`);
+  const data = await res.json();
+  const box = document.getElementById('msgLogTable');
+  if(!res.ok){ box.innerHTML = `<tr><td colspan="4">${data.error}</td></tr>`; return; }
+  if(!data.log.length){ box.innerHTML = '<tr><td colspan="4" class="dim">Koi message nahi bheja gaya abhi.</td></tr>'; return; }
+  box.innerHTML = data.log.map(m => `
+    <tr>
+      <td>${new Date(m.created_at).toLocaleString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</td>
+      <td>${m.phone}</td>
+      <td style="max-width:320px; white-space:pre-wrap;">${m.message}</td>
+      <td><span class="pill ${m.status==='sent'?'paid':'due'}">${m.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ---------- ID CARD ----------
+let idCardRoster = [];
+function loadIdCardStudents(){
+  const cls = document.getElementById('idc_class').value;
+  idCardRoster = STUDENTS.filter(s => s.class === cls);
+  const sel = document.getElementById('idc_student');
+  if(!idCardRoster.length){ sel.innerHTML = '<option value="">Is class mein koi student nahi</option>'; return; }
+  sel.innerHTML = idCardRoster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
+}
+function loadImageAsDataUrl(url){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+async function downloadIdCard(){
+  const studentId = document.getElementById('idc_student').value;
+  if(!studentId){ showMsg('Pehle student select karein', false); return; }
+  const student = idCardRoster.find(s => s.id === studentId);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:[85,54] }); // credit-card size
+
+  doc.setFillColor(13,10,8); doc.rect(0,0,85,54,'F');
+  doc.setDrawColor(255,106,0); doc.setLineWidth(1); doc.rect(1.5,1.5,82,51);
+
+  doc.setFontSize(9); doc.setTextColor(255,178,32);
+  doc.text(SCHOOL.name, 6, 8, { maxWidth: 50 });
+  doc.setFontSize(6); doc.setTextColor(180,160,140);
+  doc.text('Student ID Card', 6, 12);
+
+  let photoOk = false;
+  if(student.photo_url){
+    try{
+      const dataUrl = await loadImageAsDataUrl(student.photo_url);
+      doc.addImage(dataUrl, 'JPEG', 60, 16, 20, 24);
+      photoOk = true;
+    }catch(e){ /* fall back to text-only card */ }
+  }
+
+  doc.setFontSize(10); doc.setTextColor(245,240,234);
+  doc.text(student.name, 6, 22, { maxWidth: photoOk ? 50 : 75 });
+  doc.setFontSize(8); doc.setTextColor(201,178,154);
+  doc.text(`Class: ${student.class}`, 6, 28);
+  doc.text(`Roll No: ${student.roll_no || '-'}`, 6, 33);
+  doc.text(`Parent: ${student.parent_phone}`, 6, 38);
+  if(SCHOOL.address) doc.text(SCHOOL.address, 6, 47, { maxWidth: 75 });
+
+  doc.save(`${student.name.replace(/\s+/g,'_')}-id-card.pdf`);
+}
+
+// ---------- PHOTO UPLOAD (used by Homework, reusable elsewhere) ----------
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadPhoto(inputEl, targetFieldId, statusId){
+  const file = inputEl.files[0];
+  const statusEl = document.getElementById(statusId);
+  if(!file) return;
+  if(file.size > 4*1024*1024){ statusEl.textContent = 'Photo 4MB se badi hai, chhoti photo chunein.'; return; }
+  statusEl.textContent = 'Upload ho raha hai...';
+  try{
+    const dataBase64 = await fileToBase64(file);
+    const res = await fetch('/api/upload', { method:'POST', body: JSON.stringify({
+      slug, pin: PIN, filename: file.name, contentType: file.type, dataBase64
+    })});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    document.getElementById(targetFieldId).value = data.url;
+    statusEl.textContent = 'Upload ho gaya ✓';
+  }catch(e){
+    statusEl.textContent = 'Upload fail: ' + e.message;
+  }
+}
+
 // ---------- HOMEWORK ----------
 async function sendHomework(){
   const className = document.getElementById('hw_class').value;
@@ -479,6 +856,7 @@ async function sendHomework(){
   if(!res.ok){ showMsg(data.error, false); return; }
   showMsg(`Homework bhej diya (${data.sentTo} parents ko link gaya).`, true);
   document.getElementById('hw_text').value=''; document.getElementById('hw_image').value='';
+  document.getElementById('hw_photo_file').value=''; document.getElementById('hw_photo_status').textContent='';
 }
 async function loadHomeworkHistory(){
   const className = document.getElementById('hw_view_class').value;

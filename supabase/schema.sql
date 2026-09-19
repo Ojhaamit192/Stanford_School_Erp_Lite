@@ -24,6 +24,8 @@ create table if not exists students (
   mother_name text,
   parent_phone text not null,
   monthly_fee numeric default 0,
+  dob date,
+  photo_url text,
   active boolean default true,
   created_at timestamptz default now()
 );
@@ -76,6 +78,34 @@ create table if not exists homework (
   date date not null default current_date,
   text text,
   image_url text,
+  created_at timestamptz default now()
+);
+
+create table if not exists enquiries (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  name text not null,
+  phone text not null,
+  class_interested text,
+  converted boolean default false,
+  created_at timestamptz default now()
+);
+
+create table if not exists datesheets (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  class text not null,
+  exam_name text not null,
+  text text not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists sms_log (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  phone text not null,
+  message text not null,
+  status text not null default 'sent', -- 'sent' | 'failed' | 'dev_mode'
   created_at timestamptz default now()
 );
 

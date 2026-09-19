@@ -41,7 +41,7 @@ exports.handler = async (event) => {
       if (sErr) throw sErr;
 
       const uniquePhones = [...new Set((students || []).map((s) => s.parent_phone))];
-      await Promise.all(uniquePhones.map((phone) => sendSms(phone, `${school.name}: ${message}`)));
+      await Promise.all(uniquePhones.map((phone) => sendSms(phone, `${school.name}: ${message}`, { supabase, schoolId: school.id })));
 
       return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ notice, sentTo: uniquePhones.length }) };
     }

@@ -8,12 +8,19 @@
  *
  * If FAST2SMS_API_KEY isn't set yet, this just logs to the function log
  * instead of failing — handy for testing the app before SMS is configured.
+ *
+ * `logCtx` (optional): { supabase, schoolId } — when given, every attempt
+ * (sent or failed, real or dev-mode) is written to the sms_log table so the
+ * Message Log tab in the admin panel has a full history.
  */
-async function sendSms(to, body) {
+async function sendSms(to, body, logCtx) {
   const apiKey = process.env.FAST2SMS_API_KEY;
+  let status = "sent";
 
   if (!apiKey) {
     console.log(`[DEV MODE - SMS not sent] To: ${to} | ${body}`);
+    status = "dev_mode";
+    await logMessage(logCtx, to, body, status);
     return;
   }
 
@@ -36,9 +43,27 @@ async function sendSms(to, body) {
     const data = await res.json();
     if (!data.return) {
       console.error("Fast2SMS did not accept the message:", data);
+      status = "failed";
     }
   } catch (err) {
     console.error("Fast2SMS request failed:", err.message);
+    status = "failed";
+  }
+
+  await logMessage(logCtx, to, body, status);
+}
+
+async function logMessage(logCtx, to, body, status) {
+  if (!logCtx || !logCtx.supabase || !logCtx.schoolId) return;
+  try {
+    await logCtx.supabase.from("sms_log").insert({
+      school_id: logCtx.schoolId,
+      phone: to,
+      message: body,
+      status,
+    });
+  } catch (err) {
+    console.error("Could not write sms_log entry:", err.message);
   }
 }
 

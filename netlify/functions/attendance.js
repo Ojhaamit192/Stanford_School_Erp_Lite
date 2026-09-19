@@ -60,7 +60,7 @@ exports.handler = async (event) => {
             r.status === "present"
               ? `${school.name}: ${info.name} school pahuch gaya/gayi (${date}).`
               : `${school.name}: ${info.name} aaj school absent hai (${date}). Agar koi wajah hai to school ko bataayein.`;
-          return sendSms(info.phone, msg);
+          return sendSms(info.phone, msg, { supabase, schoolId: school.id });
         })
       );
 
