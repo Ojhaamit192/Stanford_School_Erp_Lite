@@ -23,7 +23,7 @@ exports.handler = async (event) => {
 
     const buffer = Buffer.from(dataBase64, "base64");
     if (buffer.length > MAX_BYTES) {
-      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Photo 4MB se badi hai, chhoti photo bhejein" }) };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Photo is larger than 4MB, please send a smaller one" }) };
     }
 
     const safeName = (filename || "photo").replace(/[^a-zA-Z0-9._-]/g, "_");

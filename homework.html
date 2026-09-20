@@ -29,7 +29,7 @@
   <div style="text-align:center; margin-bottom:8px;"><img src="assets/tejvix-logo.png" alt="Tejvix" style="height:44px; width:44px; border-radius:10px;"></div>
   <div class="eyebrow" id="schoolName" style="text-align:center;">Loading…</div>
   <h1 id="className">Homework</h1>
-  <div class="sub">Pichle kuch din ka homework</div>
+  <div class="sub">Homework from the last few days</div>
   <div id="list"></div>
 </div>
 <script>
@@ -40,13 +40,13 @@ document.getElementById('className').textContent = className ? `${className} —
 
 async function load(){
   const box = document.getElementById('list');
-  if(!slug || !className){ box.innerHTML = '<p class="empty">Link galat hai.</p>'; return; }
+  if(!slug || !className){ box.innerHTML = '<p class="empty">Invalid link.</p>'; return; }
   try{
     const res = await fetch(`/api/homework?slug=${encodeURIComponent(slug)}&class=${encodeURIComponent(className)}&public=1`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Load fail');
     document.getElementById('schoolName').textContent = data.school.name;
-    if(!data.homework.length){ box.innerHTML = '<p class="empty">Abhi koi homework nahi hai.</p>'; return; }
+    if(!data.homework.length){ box.innerHTML = '<p class="empty">No homework posted yet.</p>'; return; }
     box.innerHTML = data.homework.map(h => `
       <div class="card">
         <div class="date">${new Date(h.date).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</div>
@@ -55,7 +55,7 @@ async function load(){
       </div>
     `).join('');
   }catch(e){
-    box.innerHTML = '<p class="empty">Homework load nahi ho paaya.</p>';
+    box.innerHTML = '<p class="empty">Could not load homework.</p>';
   }
 }
 load();

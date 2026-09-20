@@ -38,7 +38,7 @@ exports.handler = async (event) => {
       const school = await verifyPin(supabase, body.slug, body.pin);
       const className = body.class;
       if (!className || (!body.text && !body.image_url)) {
-        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Class aur text/photo link mein se kam se kam ek zaroori hai" }) };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "At least one of class and text/photo link is required" }) };
       }
       const date = body.date || todayDate();
 
@@ -60,7 +60,7 @@ exports.handler = async (event) => {
       const uniquePhones = [...new Set((students || []).map((s) => s.parent_phone))];
       const viewLink = `${process.env.URL || ""}/homework.html?school=${school.slug}&class=${encodeURIComponent(className)}`;
       const preview = body.text ? body.text.slice(0, 80) : "Photo homework";
-      const msg = `${school.name}: ${className} ka aaj ka homework - ${preview}${viewLink ? `. Dekhein: ${viewLink}` : ""}`;
+      const msg = `${school.name}: Today's homework for ${className} - ${preview}${viewLink ? `. View: ${viewLink}` : ""}`;
 
       await Promise.all(uniquePhones.map((phone) => sendSms(phone, msg, { supabase, schoolId: school.id })));
 

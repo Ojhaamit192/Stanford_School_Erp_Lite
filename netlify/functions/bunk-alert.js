@@ -40,7 +40,7 @@ exports.handler = async () => {
       }
 
       if (flagged.length && school.phone) {
-        const msg = `${school.name}: In students ka 3 din se lagatar absent hai - ${flagged.join(", ")}. Parents se contact karein.`;
+        const msg = `${school.name}: These students have been absent for 3 days in a row - ${flagged.join(", ")}. Please contact their parents.`;
         await sendSms(school.phone, msg, { supabase, schoolId: school.id });
       }
     } catch (err) {

@@ -34,7 +34,7 @@ exports.handler = async () => {
         birthdayKids.map((s) =>
           sendSms(
             s.parent_phone,
-            `${school.name}: ${s.name} ko aaj janmadin ki bahut bahut shubhkamnayein! 🎂`,
+            `${school.name}: Wishing ${s.name} a very happy birthday! 🎂`,
             { supabase, schoolId: school.id }
           )
         )

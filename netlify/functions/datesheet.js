@@ -36,7 +36,7 @@ exports.handler = async (event) => {
       const examName = body.exam_name;
       const text = body.text;
       if (!className || !examName || !text) {
-        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Class, exam name aur datesheet text zaroori hai" }) };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Class, exam name and datesheet text are required" }) };
       }
 
       const { data: ds, error: dsErr } = await supabase
@@ -56,7 +56,7 @@ exports.handler = async (event) => {
 
       const uniquePhones = [...new Set((students || []).map((s) => s.parent_phone))];
       const viewLink = `${process.env.URL || ""}/datesheet.html?school=${school.slug}&class=${encodeURIComponent(className)}`;
-      const msg = `${school.name}: ${className} - ${examName} Datesheet:\n${text}${viewLink ? `\nDekhein: ${viewLink}` : ""}`;
+      const msg = `${school.name}: ${className} - ${examName} Datesheet:\n${text}${viewLink ? `\nView: ${viewLink}` : ""}`;
 
       await Promise.all(uniquePhones.map((phone) => sendSms(phone, msg, { supabase, schoolId: school.id })));
 

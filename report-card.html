@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<style>
+  :root{ --bg:#0D0A08; --bg-panel:#1A130E; --line:#3D2A1A; --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:600px; margin:0 auto; padding:28px 18px 60px;}
+  .school-header{text-align:center; margin-bottom:22px;}
+  .school-header img{height:64px; width:64px; border-radius:14px; object-fit:cover; margin-bottom:10px;}
+  .school-header h1{font-size:1.3rem; margin-bottom:4px;}
+  .school-header .addr{color:var(--text-dim); font-size:0.8rem;}
+  .school-header .contact{color:var(--gold-soft); font-size:0.78rem; margin-top:6px;}
+  .school-header .contact a{color:var(--gold-soft); text-decoration:underline;}
+  .student-bar{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; text-align:center;}
+  .student-bar .name{font-size:1.1rem; font-weight:600;}
+  .student-bar .meta{color:var(--text-dim); font-size:0.82rem; margin-top:2px;}
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
+  .exam-name{color:var(--gold-soft); font-size:1rem; font-weight:600; margin-bottom:10px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  td{padding:6px 0; border-bottom:1px solid var(--line);}
+  td:last-child{text-align:right;}
+  .totals-row td{border-bottom:none; padding-top:10px; font-weight:600;}
+  .rank{color:var(--gold-soft); font-size:0.82rem; margin-top:6px;}
+  .empty{color:var(--text-dim); text-align:center; padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="school-header" id="schoolHeader"></div>
+  <div class="student-bar" id="studentBar"></div>
+  <div id="list"></div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const slug = params.get('school');
+const studentId = params.get('student');
+
+async function load(){
+  const list = document.getElementById('list');
+  if(!slug || !studentId){ list.innerHTML = '<p class="empty">Invalid link.</p>'; return; }
+  try{
+    const res = await fetch(`/api/results?slug=${encodeURIComponent(slug)}&student=${encodeURIComponent(studentId)}&public=1`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Load fail');
+
+    document.getElementById('schoolHeader').innerHTML = `
+      ${data.school.logo_url ? `<img src="${data.school.logo_url}" alt="${data.school.name}">` : ''}
+      <h1>${data.school.name}</h1>
+      ${data.school.address ? `<div class="addr">${data.school.address}</div>` : ''}
+      <div class="contact">
+        ${data.school.map_link ? `<a href="${data.school.map_link}" target="_blank">Get Directions</a>` : ''}
+        ${data.school.enquiry_phone ? ` ${data.school.map_link ? '·' : ''} ${data.school.enquiry_phone}` : ''}
+      </div>
+    `;
+    document.getElementById('studentBar').innerHTML = `
+      <div class="name">${data.student.name}</div>
+      <div class="meta">${data.student.class} • Roll No. ${data.student.roll_no || '-'}</div>
+    `;
+
+    if(!data.results.length){ list.innerHTML = '<p class="empty">No results published yet.</p>'; return; }
+
+    const byExam = {};
+    data.results.forEach(r => { byExam[r.exam_name] = byExam[r.exam_name] || []; byExam[r.exam_name].push(r); });
+
+    list.innerHTML = Object.entries(byExam).map(([examName, subs]) => {
+      const total = subs.reduce((sum, s) => sum + Number(s.marks_obtained), 0);
+      const maxTotal = subs.reduce((sum, s) => sum + Number(s.max_marks), 0);
+      const rankInfo = data.ranks[examName];
+      return `
+        <div class="card">
+          <div class="exam-name">${examName}</div>
+          <table>
+            ${subs.map(s => `<tr><td>${s.subject}</td><td>${s.marks_obtained} / ${s.max_marks}</td></tr>`).join('')}
+            <tr class="totals-row"><td>Total</td><td>${total} / ${maxTotal}</td></tr>
+          </table>
+          ${rankInfo ? `<div class="rank">Class Rank: ${rankInfo.rank} / ${rankInfo.outOf}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }catch(e){
+    list.innerHTML = '<p class="empty">Could not load the report card.</p>';
+  }
+}
+load();
+</script>
+</body>
+</html>

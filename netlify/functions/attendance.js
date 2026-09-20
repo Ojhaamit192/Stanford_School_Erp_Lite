@@ -58,8 +58,8 @@ exports.handler = async (event) => {
           if (!info) return null;
           const msg =
             r.status === "present"
-              ? `${school.name}: ${info.name} school pahuch gaya/gayi (${date}).`
-              : `${school.name}: ${info.name} aaj school absent hai (${date}). Agar koi wajah hai to school ko bataayein.`;
+              ? `${school.name}: ${info.name} has arrived at school (${date}).`
+              : `${school.name}: ${info.name} is absent from school today (${date}). Please inform the school if there is a reason.`;
           return sendSms(info.phone, msg, { supabase, schoolId: school.id });
         })
       );

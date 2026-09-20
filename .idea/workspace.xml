@@ -1,4 +1,93 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PropertiesComponent">{}</component>
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="87960dbc-af21-4cdb-bdae-cb33c0abcd20" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/Stanford_School_Erp_Lite.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin.html" beforeDir="false" afterPath="$PROJECT_DIR$/admin.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/datesheet.html" beforeDir="false" afterPath="$PROJECT_DIR$/datesheet.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/homework.html" beforeDir="false" afterPath="$PROJECT_DIR$/homework.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify.toml" beforeDir="false" afterPath="$PROJECT_DIR$/netlify.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/attendance.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/attendance.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/birthday-wish.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/birthday-wish.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/bunk-alert.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/bunk-alert.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/datesheet.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/datesheet.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/enquiry.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/enquiry.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/fees.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/fees.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/homework.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/homework.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/monthly-summary.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/monthly-summary.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/notices.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/notices.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/results.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/results.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/students.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/students.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/super-admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/super-admin.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/upload.js" beforeDir="false" afterPath="$PROJECT_DIR$/netlify/functions/upload.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/backup.js" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/backup.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/supabase/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/supabase/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/super-admin.html" beforeDir="false" afterPath="$PROJECT_DIR$/super-admin.html" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="3JX3s9fkTGWG6kxzxbJlxxt7W36" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "JavaScript Debug.index.html.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "disable.download.node.interpreter.editor.notification": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-821f704e66d9-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.9437.214" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="87960dbc-af21-4cdb-bdae-cb33c0abcd20" name="Changes" comment="" />
+      <created>1789793791142</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1789793791142</updated>
+      <workItem from="1789793792826" duration="1391000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
 </project>

@@ -16,14 +16,22 @@ Muzaffarpur** (PIN: `1234`).
   PIN-protected. Tabs: Students, Attendance, Fees, Notices, Results.
 - `netlify/functions/` — `schools.js`, `students.js`, `attendance.js`,
   `fees.js`, `notices.js`, `results.js`, `homework.js`, `upload.js`,
-  `enquiry.js`, `dashboard.js`, `datesheet.js`, `message-log.js`,
-  `bunk-alert.js`, `monthly-summary.js`, `birthday-wish.js`,
-  `super-admin.js`. All follow `/api/*` (scheduled ones don't).
+  `enquiry.js`, `dashboard.js`, `attendance-insights.js`, `datesheet.js`,
+  `message-log.js`, `bunk-alert.js`, `monthly-summary.js`,
+  `birthday-wish.js`, `fee-reminder.js`, `super-admin.js`,
+  `timetable.js`, `tc.js`, `staff.js`, `staff-attendance.js`,
+  `staff-salary.js`. All follow `/api/*` (scheduled ones don't).
 - `supabase/schema.sql` — tables: `schools`, `students`, `attendance`,
   `fee_payments`, `notices`, `exam_results`, `homework`, `enquiries`,
-  `datesheets`, `sms_log`.
-- `supabase/migration_2_trust_and_growth_features.sql` — run this once if
-  you deployed before this update (adds the newer columns/tables above).
+  `datesheets`, `sms_log`, `timetable_slots`, `tc_records`, `staff`,
+  `staff_attendance`, `staff_salary_payments`.
+- `supabase/migration_2_trust_and_growth_features.sql`,
+  `supabase/migration_3_branding_and_contact.sql`, and
+  `supabase/migration_4_timetable_tc_staff.sql` — run these once, in
+  order, if you deployed before those updates.
+- `report-card.html` — public, no-login report card view, opened via the
+  SMS link sent when results are published for a student
+  (`report-card.html?school=<slug>&student=<id>`).
 - `datesheet.html` — public, no-login exam-datesheet view (same pattern as
   `homework.html`).
 - `super-admin.html` — combined all-schools view, password-protected (see
@@ -122,26 +130,35 @@ sees a half-finished change.
 **Change this demo PIN in the `schools` table before showing it to the
 real school.**
 
-## 8. Scheduled functions (Bunk Alert + Monthly Summary + Birthday Wish)
+## 8. Scheduled functions (Bunk Alert, Monthly Summary, Birthday Wish, Fee Reminder)
 
 These are wired up already in `netlify.toml` and need no extra dashboard
 setup — Netlify reads the `schedule` config from `netlify.toml` and runs
-`bunk-alert.js` and `birthday-wish.js` daily, and `monthly-summary.js`
-monthly, once deployed. Two things to keep in mind:
+`bunk-alert.js`, `birthday-wish.js`, and `fee-reminder.js` on their own
+schedules, and `monthly-summary.js` monthly, once deployed. Two things to
+keep in mind:
 
 - Bunk Alert and Monthly Summary SMS the number in the school's `phone`
   column (the owner), not parents — make sure every school row has a real
-  phone number. Birthday Wish SMSes the parent, using each student's `dob`.
+  phone number. Birthday Wish and Fee Reminder SMS the parent directly.
 - Scheduled Functions execute on their own — they don't appear in
   `/api/*` and don't need a PIN, since nothing calls them from the browser.
   You can see their run history under Netlify → your site → **Logs → Functions**.
 
-## 9. If you already ran schema.sql once (existing Stanford Prep deploy)
+## 9. If you already ran schema.sql before this update
 
-This update added new columns/tables: `students.dob`, `students.photo_url`,
-`enquiries.converted`, `datesheets`, `sms_log`. Run
-`supabase/migration_2_trust_and_growth_features.sql` once in the SQL
-Editor — it's additive and safe to run even if some of it already exists.
+Run these files, in order, in the Supabase SQL Editor (all additive and
+safe to run more than once):
+
+1. `supabase/migration_2_trust_and_growth_features.sql` — adds
+   `students.dob`, `students.photo_url`, `enquiries.converted`,
+   `datesheets`, `sms_log`.
+2. `supabase/migration_3_branding_and_contact.sql` — adds
+   `schools.enquiry_phone`, `schools.map_link`,
+   `fee_payments.receipt_url`, and fills in Stanford Prep School's real
+   address, phone numbers, map link, and logo.
+3. `supabase/migration_4_timetable_tc_staff.sql` — adds `timetable_slots`,
+   `tc_records`, `staff`, `staff_attendance`, `staff_salary_payments`.
 
 ## 10. Super Admin (only if you run more than one school yourself)
 
@@ -217,7 +234,7 @@ row if you want to gate features later.
 - **Message Log** — every SMS the app sends (attendance, fees, notices,
   homework, datesheets, alerts) is logged with phone number, message text,
   and delivery status, visible in its own tab — useful when a parent says
-  "humein message nahi mila" and you need to check what actually went out.
+  "I didn't get the message" and you need to check what actually went out.
 - **Admission Enquiry Form** — on the public directory (`index.html`), each
   school card has an "Admission Enquiry" button that opens a small form
   (name, phone, class interested). Submitting it saves the enquiry and
@@ -225,9 +242,86 @@ row if you want to gate features later.
   no login needed to use it.
 - **Super Admin** — see step 10 above; a combined, all-schools view for
   when you're running this as a product across multiple clients.
+- **Classes** — Nursery, LKG, UKG, and Class 1–10, as a fixed dropdown
+  everywhere a class is picked (no free-typing, so "Class 8" never gets
+  entered three different ways).
+- **Editable students, with photo** — every student row in the Students
+  tab has an Edit button, so a phone number, DOB, or photo can be added or
+  fixed after the student was first added — useful since real photos and
+  details often arrive later, in batches, from a phone gallery.
+- **Bulk Excel import** — upload a spreadsheet (name, class, roll_no,
+  father_name, parent_phone, monthly_fee, dob columns) and every valid row
+  becomes a student in one go — the practical alternative to reading
+  names off a photographed register, which no OCR does reliably enough to
+  trust for admissions data.
+- **Excel + PDF export everywhere it matters** — the student list and the
+  fees status list can both be downloaded as a real `.xlsx` (via
+  SheetJS) or a PDF, per class, alongside the existing attendance
+  register export and report card / ID card PDFs.
+- **Mark All Present / Mark All Absent** — one click in the Attendance
+  tab sets the whole loaded class before you flip the few exceptions,
+  instead of tapping every student individually.
+- **Fees — manual amount + optional receipt photo** — recording a payment
+  is no longer a fixed one-click "mark paid": the amount is editable
+  (partial payments included) and a receipt photo can be attached from
+  the phone gallery, stored alongside that payment.
+- **Automatic Fee Reminder** — on the 5th and 15th of every month, anyone
+  who hasn't paid that month's fee gets an SMS automatically, no button
+  needed.
+- **Attendance by Class & Student (Dashboard)** — pick a class and see
+  every student's attendance % for this month and this year side by
+  side, roll-number ordered, with a 🏆 next to anyone at 100% this month.
+- **WhatsApp enquiry option** — next to the existing enquiry form on the
+  public directory, a small green WhatsApp button: it saves the enquiry
+  the same way the form does (so it always shows up on the Dashboard),
+  then opens WhatsApp with the details prefilled so the parent can also
+  message the school directly if they prefer.
+- **Report card, sent as a link** — when results are published with
+  "notify" checked, the SMS now includes a link to that student's
+  report card (`report-card.html`) — school logo, address, map link and
+  phone shown at the top, so it reads as an official document, not just
+  a text message.
+- **Per-school branding** — `schools.logo_url`, `schools.map_link`, and
+  `schools.enquiry_phone` let each school show its own logo and contact
+  details on its directory card and report cards, independent of the
+  Tejvix platform branding in the header.
+- **Timetable** — a Timetable tab: pick a class and day, fill in periods
+  (time, subject, teacher), save — saving replaces that day's periods for
+  that class. A "Full Week" PDF pulls together every saved day for the
+  selected class.
+- **Transfer Certificate** — in the Students tab: pick a student, fill in
+  TC number, date of leaving, reason, and conduct, and it generates a
+  formatted TC PDF (school name, address, all the standard fields) and
+  automatically moves that student to inactive (removed from active
+  rosters, attendance, and fees lists) without deleting their history.
+- **Staff / Teacher management** — a new Staff tab, parallel to the
+  Student/Attendance/Fees pattern: add staff with role and monthly
+  salary, mark daily staff attendance (with Mark All Present/Absent,
+  same as students), and record monthly salary payments against a
+  paid/due list per staff member. No SMS is sent for staff — this is an
+  internal record only.
 - **Tejvix branding** — the logo and "by TEJVIX · tejvix.com" line are on
   every page header now (`assets/tejvix-logo.png`), same dark/gold glow
   theme as the salon app.
+
+## UI/UX refinement pass
+
+Same features, same data model — this pass only touched layout, spacing,
+and consistency, per your "refinement not redesign" brief:
+
+- A `--warning` color token and a proper 3-tier panel hierarchy
+  (`--bg` → `--bg-panel` → `--bg-panel-2`) alongside the existing
+  dark/gold Tejvix palette.
+- A stat-card row at the top of the Dashboard (Total Students, Avg
+  Attendance, This Month's Collection, Enquiry → Admission) so the most
+  important numbers are visible before scrolling — no more digging
+  through cards to find "how are we doing right now."
+- Every list now has a real empty state ("No students yet — add one
+  below or bulk-import from Excel") instead of a blank table.
+- Every table wide enough to overflow on a phone now scrolls inside its
+  own container instead of squeezing the whole page sideways.
+- Subtle hover/press transitions on buttons, tabs, and toggles — a
+  refinement in the literal sense, meant to be felt more than noticed.
 
 ## Limitations to know about (demo-grade, same honesty as the salon app)
 

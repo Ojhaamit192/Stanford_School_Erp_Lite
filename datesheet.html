@@ -29,7 +29,7 @@
   <div style="text-align:center; margin-bottom:8px;"><img src="assets/tejvix-logo.png" alt="Tejvix" style="height:44px; width:44px; border-radius:10px;"></div>
   <div class="eyebrow" id="schoolName" style="text-align:center;">Loading…</div>
   <h1 id="className">Exam Datesheet</h1>
-  <div class="sub">Pichli kuch datesheets</div>
+  <div class="sub">Recent datesheets</div>
   <div id="list"></div>
 </div>
 <script>
@@ -40,13 +40,13 @@ document.getElementById('className').textContent = className ? `${className} —
 
 async function load(){
   const box = document.getElementById('list');
-  if(!slug || !className){ box.innerHTML = '<p class="empty">Link galat hai.</p>'; return; }
+  if(!slug || !className){ box.innerHTML = '<p class="empty">Invalid link.</p>'; return; }
   try{
     const res = await fetch(`/api/datesheet?slug=${encodeURIComponent(slug)}&class=${encodeURIComponent(className)}&public=1`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Load fail');
     document.getElementById('schoolName').textContent = data.school.name;
-    if(!data.datesheets.length){ box.innerHTML = '<p class="empty">Abhi koi datesheet nahi hai.</p>'; return; }
+    if(!data.datesheets.length){ box.innerHTML = '<p class="empty">No datesheet posted yet.</p>'; return; }
     box.innerHTML = data.datesheets.map(d => `
       <div class="card">
         <div class="exam-name">${d.exam_name}</div>
@@ -55,7 +55,7 @@ async function load(){
       </div>
     `).join('');
   }catch(e){
-    box.innerHTML = '<p class="empty">Datesheet load nahi ho paaya.</p>';
+    box.innerHTML = '<p class="empty">Could not load the datesheet.</p>';
   }
 }
 load();

@@ -36,9 +36,9 @@
 <div id="loginScreen" class="login-box">
   <div class="logo" style="justify-content:center;"><img src="assets/tejvix-logo.png" alt="Tejvix"></div>
   <h2>Super Admin</h2>
-  <p style="color:var(--text-dim); font-size:0.85rem; margin:10px 0;">Sabhi schools ka combined view</p>
+  <p style="color:var(--text-dim); font-size:0.85rem; margin:10px 0;">Combined view of all schools</p>
   <input id="pwInput" type="password" placeholder="Master password">
-  <button class="btn" style="width:100%" onclick="load()">Dekhein</button>
+  <button class="btn" style="width:100%" onclick="load()">View</button>
   <p id="err"></p>
 </div>
 
@@ -48,7 +48,7 @@
   <div class="card">
     <h3 style="margin-bottom:12px;">School-wise</h3>
     <table>
-      <thead><tr><th>School</th><th>Students</th><th>Is Mahine Collection</th><th>Attendance % (30 din)</th><th>Enquiries</th><th>Converted</th></tr></thead>
+      <thead><tr><th>School</th><th>Students</th><th>This Month's Collection</th><th>Attendance % (30 days)</th><th>Enquiries</th><th>Converted</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
@@ -69,7 +69,7 @@ async function load(){
     document.getElementById('totals').innerHTML = `
       <div class="stat"><div class="num">${data.schools.length}</div><div class="label">Schools</div></div>
       <div class="stat"><div class="num">${data.totals.students}</div><div class="label">Total Students</div></div>
-      <div class="stat"><div class="num">₹${data.totals.collection}</div><div class="label">Is Mahine Collection</div></div>
+      <div class="stat"><div class="num">₹${data.totals.collection}</div><div class="label">This Month's Collection</div></div>
       <div class="stat"><div class="num">${data.totals.converted}/${data.totals.enquiries}</div><div class="label">Enquiry → Admission</div></div>
     `;
     document.getElementById('rows').innerHTML = data.schools.map(s => `

@@ -11,6 +11,8 @@ create table if not exists schools (
   brand_color text default '#FF6A00',
   logo_url text,
   monthly_fee_note text,
+  enquiry_phone text,
+  map_link text,
   created_at timestamptz default now()
 );
 
@@ -49,6 +51,7 @@ create table if not exists fee_payments (
   month text not null, -- e.g. '2026-09'
   paid_on date default current_date,
   method text default 'cash',
+  receipt_url text,
   created_at timestamptz default now()
 );
 
@@ -91,6 +94,63 @@ create table if not exists enquiries (
   created_at timestamptz default now()
 );
 
+create table if not exists timetable_slots (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  class text not null,
+  day_of_week text not null, -- 'Monday' .. 'Saturday'
+  period_no integer not null,
+  time_range text,
+  subject text,
+  teacher_name text,
+  created_at timestamptz default now()
+);
+
+create table if not exists tc_records (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  student_id uuid references students(id) on delete cascade,
+  tc_number text not null,
+  date_of_leaving date not null default current_date,
+  reason text,
+  conduct text default 'Good',
+  remarks text,
+  created_at timestamptz default now()
+);
+
+create table if not exists staff (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  name text not null,
+  role text default 'Teacher',
+  phone text,
+  monthly_salary numeric default 0,
+  joining_date date,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists staff_attendance (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  staff_id uuid references staff(id) on delete cascade,
+  date date not null,
+  status text not null check (status in ('present','absent')),
+  created_at timestamptz default now(),
+  unique (staff_id, date)
+);
+
+create table if not exists staff_salary_payments (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references schools(id) on delete cascade,
+  staff_id uuid references staff(id) on delete cascade,
+  amount numeric not null,
+  month text not null,
+  paid_on date default current_date,
+  method text default 'cash',
+  created_at timestamptz default now()
+);
+
 create table if not exists datesheets (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references schools(id) on delete cascade,
@@ -110,6 +170,16 @@ create table if not exists sms_log (
 );
 
 -- Seed one demo school so the directory isn't empty on first deploy.
-insert into schools (slug, name, address, phone, admin_pin, monthly_fee_note)
-values ('stanford-prep', 'Stanford Prep School', 'Patahi Chowk, Muzaffarpur', '+91 7352662955', '1234', '₹500/month per student')
+insert into schools (slug, name, address, phone, admin_pin, monthly_fee_note, enquiry_phone, map_link, logo_url)
+values (
+  'stanford-prep',
+  'Stanford Prep School',
+  'Patahi Chowk, Rewa Road, Muzaffarpur - 843113',
+  '+917352662955',
+  '1234',
+  '₹500/month per student',
+  '+917352662955, +919334160652',
+  'https://www.google.com/maps/place/26%C2%B006''52.2%22N+85%C2%B020''10.4%22E/@26.1145059,85.3336444,17z',
+  '/assets/stanford-logo.png'
+)
 on conflict (slug) do nothing;

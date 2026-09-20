@@ -42,11 +42,28 @@ exports.handler = async (event) => {
     // Public: parent submits from the directory page. { slug, name, phone, class_interested }
     const { slug, name, phone, class_interested } = body;
     if (!slug || !name || !phone) {
-      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Naam aur phone zaroori hai" }) };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Name and phone are required" }) };
     }
 
     const { data: school, error: schoolErr } = await supabase.from("schools").select("*").eq("slug", slug).single();
     if (schoolErr || !school) throw new Error("School not found");
+
+    // One enquiry per phone number per day — a parent tapping the button twice, or trying
+    // both the form and the WhatsApp option, should not create a duplicate record or send
+    // the owner a second SMS for the same person on the same day.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data: existing, error: dupErr } = await supabase
+      .from("enquiries")
+      .select("id")
+      .eq("school_id", school.id)
+      .eq("phone", phone)
+      .gte("created_at", todayStart.toISOString())
+      .limit(1);
+    if (dupErr) throw dupErr;
+    if (existing && existing.length) {
+      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ ok: true, duplicate: true }) };
+    }
 
     const { error: insErr } = await supabase
       .from("enquiries")
@@ -54,7 +71,7 @@ exports.handler = async (event) => {
     if (insErr) throw insErr;
 
     if (school.phone) {
-      const msg = `${school.name}: Nayi admission enquiry - ${name} (${phone})${class_interested ? `, ${class_interested} ke liye` : ""}. Call back karein.`;
+      const msg = `${school.name}: New admission enquiry - ${name} (${phone})${class_interested ? ` for ${class_interested}` : ""}. Please call back.`;
       await sendSms(school.phone, msg, { supabase, schoolId: school.id });
     }
 

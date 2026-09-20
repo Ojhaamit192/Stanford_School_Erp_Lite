@@ -50,22 +50,22 @@ exports.handler = async (event) => {
         if (error) throw error;
         await sendSms(
           student.parent_phone,
-          `${school.name}: ${student.name} ki is mahine ki fee (₹${student.monthly_fee}) abhi due hai. Kripya jald bhugtan karein.`,
+          `${school.name}: ${student.name}'s fee for this month (₹${student.monthly_fee}) is currently due. Please pay at the earliest.`,
           { supabase, schoolId: school.id }
         );
         return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ sent: true }) };
       }
 
-      // Record a payment: { slug, pin, student_id, amount, month, method }
-      const { student_id, amount, month, method } = body;
+      // Record a payment: { slug, pin, student_id, amount, month, method, receipt_url }
+      const { student_id, amount, month, method, receipt_url } = body;
       if (!student_id || !amount) {
-        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "student_id aur amount zaroori hai" }) };
+        return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "student_id and amount are required" }) };
       }
       const targetMonth = month || new Date().toISOString().slice(0, 7);
 
       const { data: payment, error: payErr } = await supabase
         .from("fee_payments")
-        .insert({ school_id: school.id, student_id, amount, month: targetMonth, method: method || "cash" })
+        .insert({ school_id: school.id, student_id, amount, month: targetMonth, method: method || "cash", receipt_url: receipt_url || null })
         .select()
         .single();
       if (payErr) throw payErr;
@@ -74,7 +74,7 @@ exports.handler = async (event) => {
       if (student) {
         await sendSms(
           student.parent_phone,
-          `${school.name}: Rasid - ${student.name} ki fees ₹${amount} (${targetMonth}) mil gayi hai. Dhanyawad.`,
+          `${school.name}: Receipt - ${student.name}'s fee of ₹${amount} (${targetMonth}) has been received. Thank you.`,
           { supabase, schoolId: school.id }
         );
       }

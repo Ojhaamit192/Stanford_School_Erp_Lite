@@ -10,11 +10,12 @@
 <meta name="theme-color" content="#FF6A00">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#0D0A08; --bg-panel:#1A130E; --bg-panel-2:#241A12; --line:#3D2A1A;
     --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A;
-    --success:#5EAE7C; --danger:#E0574A;
+    --success:#5EAE7C; --danger:#E0574A; --warning:#F2B84B;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
@@ -28,26 +29,34 @@
   .logo small{display:block; color:var(--text-dim); font-weight:400; font-size:0.68rem; letter-spacing:0.04em;}
   .school-name{color:var(--text-dim); font-size:0.9rem;}
 
-  input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
+  input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif; transition:border-color 0.15s ease;}
   input:focus, select:focus, textarea:focus{border-color:var(--gold-soft); outline:none;}
   label{font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; display:block;}
   .field{margin-bottom:14px;}
-  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer;}
+  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer; transition:background 0.15s ease, transform 0.1s ease;}
   .btn:hover{background:var(--gold-soft);}
-  .btn-ghost{background:none; border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:8px; font-size:0.88rem; cursor:pointer;}
-  .btn-ghost:hover{border-color:var(--gold-soft);}
+  .btn:active{transform:scale(0.98);}
+  .btn-ghost{background:none; border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:8px; font-size:0.88rem; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease;}
+  .btn-ghost:hover{border-color:var(--gold-soft); background:var(--bg-panel-2);}
   .btn-small{padding:6px 12px; font-size:0.82rem; border-radius:6px;}
   .btn-danger{background:var(--danger); color:#fff;}
 
   .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:20px;}
+  .card h3{margin-bottom:14px; font-size:1.05rem;}
+  .card > .row:first-child h3{margin-bottom:0;}
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
   .row > *{flex:1; min-width:140px;}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;}
+  .stat-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .stat-card .num{font-family:'Fraunces',serif; font-size:1.6rem; font-weight:600; color:var(--gold-soft); line-height:1.2;}
+  .stat-card .label{color:var(--text-dim); font-size:0.78rem; margin-top:2px;}
 
   .login-box{max-width:360px; margin:80px auto; text-align:center;}
   .login-box h2{margin-bottom:18px;}
 
   .tabs{display:flex; gap:6px; overflow-x:auto; margin-bottom:20px; border-bottom:1px solid var(--line);}
-  .tab{padding:10px 16px; font-size:0.9rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent;}
+  .tab{padding:10px 16px; font-size:0.9rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; transition:color 0.15s ease, border-color 0.15s ease;}
   .tab.active{color:var(--gold-soft); border-color:var(--gold-soft); font-weight:600;}
   .panel{display:none;}
   .panel.active{display:block;}
@@ -59,9 +68,10 @@
   .pill{display:inline-block; padding:3px 10px; border-radius:99px; font-size:0.78rem; font-weight:600;}
   .pill.present, .pill.paid{background:rgba(94,174,122,0.15); color:var(--success);}
   .pill.absent, .pill.due{background:rgba(224,87,74,0.15); color:var(--danger);}
+  .pill.warn{background:rgba(242,184,74,0.15); color:var(--warning);}
 
   .toggle-row{display:flex; gap:6px;}
-  .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center;}
+  .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center; transition:background 0.15s ease, border-color 0.15s ease;}
   .toggle-btn.present.active{background:var(--success); color:#0a1a0f; border-color:var(--success); font-weight:600;}
   .toggle-btn.absent.active{background:var(--danger); color:#2a0906; border-color:var(--danger); font-weight:600;}
 
@@ -76,7 +86,7 @@
   <img src="assets/tejvix-logo.png" alt="Tejvix" style="height:56px; width:56px; border-radius:12px; margin-bottom:14px;">
   <h2>Staff Login</h2>
   <p class="dim" id="loginSchoolName" style="margin-bottom:18px;"></p>
-  <div class="field"><input id="pinInput" placeholder="PIN daalein" type="password" inputmode="numeric"></div>
+  <div class="field"><input id="pinInput" placeholder="Enter PIN" type="password" inputmode="numeric"></div>
   <button class="btn" style="width:100%" onclick="login()">Login</button>
   <p id="loginMsg" style="color:var(--danger); margin-top:10px; font-size:0.85rem;"></p>
 </div>
@@ -92,7 +102,9 @@
       <div class="tab active" data-tab="dashboard">Dashboard</div>
       <div class="tab" data-tab="students">Students</div>
       <div class="tab" data-tab="attendance">Attendance</div>
+      <div class="tab" data-tab="timetable">Timetable</div>
       <div class="tab" data-tab="fees">Fees</div>
+      <div class="tab" data-tab="staff">Staff</div>
       <div class="tab" data-tab="notices">Notices</div>
       <div class="tab" data-tab="results">Results</div>
       <div class="tab" data-tab="homework">Homework</div>
@@ -104,12 +116,34 @@
 
     <!-- DASHBOARD -->
     <div class="panel active" id="panel-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="stat_students">-</div><div class="label">Total Students</div></div>
+        <div class="stat-card"><div class="num" id="stat_attendance">-</div><div class="label">Avg Attendance (14d)</div></div>
+        <div class="stat-card"><div class="num" id="stat_collection">-</div><div class="label">This Month's Collection</div></div>
+        <div class="stat-card"><div class="num" id="stat_conversion">-</div><div class="label">Enquiry → Admission</div></div>
+      </div>
       <div class="card">
-        <h3 style="margin-bottom:14px;">Attendance Trend (Pichle 14 din)</h3>
+        <h3 style="margin-bottom:14px;">Attendance Trend (Last 14 Days) — Whole School</h3>
         <canvas id="attendanceChart" height="140"></canvas>
       </div>
       <div class="card">
-        <h3 style="margin-bottom:14px;">Fees Collection (Pichle 6 mahine)</h3>
+        <div class="row" style="align-items:center; margin-bottom:10px;">
+          <h3>Attendance by Class &amp; Student</h3>
+          <div style="text-align:right;">
+            <select id="ai_class" style="display:inline-block; width:auto;"></select>
+            <button class="btn-ghost btn-small" onclick="loadAttendanceInsights()">Load</button>
+          </div>
+        </div>
+        <p class="dim" style="margin-bottom:10px;">🏆 = 100% attendance this month. For a specific day's register, use the Attendance tab's Register download.</p>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Roll</th><th>Name</th><th>This Month</th><th>This Year</th></tr></thead>
+          <tbody id="aiTable"><tr><td colspan="4" class="dim">Select a class and load.</td></tr></tbody>
+        </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Fees Collection (Last 6 Months)</h3>
         <canvas id="feesChart" height="140"></canvas>
       </div>
       <div class="card">
@@ -117,53 +151,102 @@
           <h3>Admission Enquiries</h3>
           <div id="enqStats" class="dim" style="text-align:right;"></div>
         </div>
+        <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Naam</th><th>Phone</th><th>Class</th><th>Kab</th><th>Status</th></tr></thead>
+          <thead><tr><th>Name</th><th>Phone</th><th>Class</th><th>When</th><th>Status</th></tr></thead>
           <tbody id="enqTable"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
     <!-- STUDENTS -->
     <div class="panel" id="panel-students">
       <div class="card">
-        <h3 style="margin-bottom:14px;">Naya Student Jodein</h3>
-        <div class="row">
-          <div class="field"><label>Naam</label><input id="s_name"></div>
-          <div class="field"><label>Class</label><select id="s_class"></select></div>
-          <div class="field"><label>Roll No</label><input id="s_roll"></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>Father Name</label><input id="s_father"></div>
-          <div class="field"><label>Parent WhatsApp/Phone</label><input id="s_phone" placeholder="9876543210"></div>
-          <div class="field"><label>Monthly Fee (₹)</label><input id="s_fee" type="number" value="500"></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>Date of Birth</label><input id="s_dob" type="date"></div>
-          <div class="field"><label>Photo (ID Card ke liye, optional)</label>
-            <input type="file" id="s_photo_file" accept="image/*" onchange="uploadPhoto(this, 's_photo_url', 's_photo_status')">
-            <div id="s_photo_status" class="dim" style="margin-top:4px;"></div>
+        <div class="row" style="align-items:center; margin-bottom:14px;">
+          <h3>All Students (<span id="studentCount">0</span>)</h3>
+          <div style="text-align:right;">
+            <select id="stu_filter_class" style="display:inline-block; width:auto; margin-right:8px;" onchange="renderStudents()"><option value="all">All Classes</option></select>
+            <button class="btn-ghost btn-small" onclick="exportStudentsExcel()">Excel</button>
+            <button class="btn-ghost btn-small" onclick="exportStudentsPdf()">PDF</button>
           </div>
         </div>
-        <input type="hidden" id="s_photo_url">
-        <button class="btn" onclick="addStudent()">Student Jodein</button>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th></th><th>Name</th><th>Father</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th><th></th></tr></thead>
+          <tbody id="studentTable"></tbody>
+        </table>
+        </div>
       </div>
 
       <div class="card">
-        <h3 style="margin-bottom:14px;">Sabhi Students (<span id="studentCount">0</span>)</h3>
-        <table>
-          <thead><tr><th>Naam</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th></tr></thead>
-          <tbody id="studentTable"></tbody>
-        </table>
+        <div class="row" style="align-items:center; margin-bottom:4px;">
+          <h3 id="addStudentTitle">Add New Student</h3>
+          <div style="text-align:right;"><button class="btn-ghost btn-small" onclick="toggleAddStudentForm()" id="addStudentToggleBtn">+ Add Student</button></div>
+        </div>
+        <div id="addStudentForm" style="display:none; margin-top:12px;">
+          <input type="hidden" id="s_edit_id">
+          <div class="row">
+            <div class="field"><label>Name</label><input id="s_name"></div>
+            <div class="field"><label>Class</label><select id="s_class"></select></div>
+            <div class="field"><label>Roll No</label><input id="s_roll"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Father Name</label><input id="s_father"></div>
+            <div class="field"><label>Parent WhatsApp/Phone</label><input id="s_phone" placeholder="9876543210"></div>
+            <div class="field"><label>Monthly Fee (₹)</label><input id="s_fee" type="number" value="500"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Date of Birth</label><input id="s_dob" type="date"></div>
+            <div class="field"><label>Photo (for ID Card, optional)</label>
+              <input type="file" id="s_photo_file" accept="image/*" onchange="uploadPhoto(this, 's_photo_url', 's_photo_status')">
+              <div id="s_photo_status" class="dim" style="margin-top:4px;"></div>
+            </div>
+          </div>
+          <input type="hidden" id="s_photo_url">
+          <button class="btn" id="s_submit_btn" onclick="addStudent()">Add Student</button>
+          <button class="btn-ghost" onclick="cancelEditStudent()" id="s_cancel_btn" style="display:none;">Cancel</button>
+        </div>
       </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:6px;">Bulk Import from Excel</h3>
+        <p class="dim" style="margin-bottom:12px;">Columns: name, class, roll_no, father_name, parent_phone, monthly_fee, dob (dob optional, format YYYY-MM-DD).</p>
+        <input type="file" id="bulk_file" accept=".xlsx,.xls,.csv">
+        <div id="bulk_status" class="dim" style="margin-top:8px;"></div>
+        <button class="btn" style="margin-top:10px;" onclick="importBulkStudents()">Import Students</button>
+      </div>
+
       <div class="card">
         <h3 style="margin-bottom:14px;">ID Card (PDF)</h3>
         <div class="row">
           <div class="field"><label>Class</label><select id="idc_class"></select></div>
-          <div class="field"><label>Student</label><select id="idc_student"><option value="">Pehle class load karein</option></select></div>
+          <div class="field"><label>Student</label><select id="idc_student"><option value="">Load class first</option></select></div>
         </div>
-        <button class="btn-ghost" onclick="loadIdCardStudents()">Students Load Karein</button>
-        <button class="btn" style="margin-top:10px;" onclick="downloadIdCard()">ID Card Download Karein</button>
+        <button class="btn-ghost" onclick="loadIdCardStudents()">Load Students</button>
+        <button class="btn" style="margin-top:10px;" onclick="downloadIdCard()">Download ID Card</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:6px;">Transfer Certificate</h3>
+        <p class="dim" style="margin-bottom:12px;">Issuing a TC marks the student as no longer active (removed from attendance/fees lists), so only use this when the student is actually leaving.</p>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="tc_class"></select></div>
+          <div class="field"><label>Student</label><select id="tc_student"><option value="">Load class first</option></select></div>
+        </div>
+        <button class="btn-ghost" onclick="loadTcStudents()">Load Students</button>
+        <div class="row" style="margin-top:12px;">
+          <div class="field"><label>TC Number</label><input id="tc_number"></div>
+          <div class="field"><label>Date of Leaving</label><input id="tc_date" type="date"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Reason for Leaving</label><input id="tc_reason" placeholder="e.g. Family relocating"></div>
+          <div class="field"><label>Conduct</label>
+            <select id="tc_conduct"><option>Good</option><option>Satisfactory</option><option>Excellent</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Remarks (optional)</label><input id="tc_remarks"></div>
+        <button class="btn" onclick="issueTc()">Issue TC &amp; Download PDF</button>
       </div>
     </div>
 
@@ -174,49 +257,150 @@
           <div class="field"><label>Class</label><select id="att_class"></select></div>
           <div class="field"><label>Date</label><input id="att_date" type="date"></div>
         </div>
-        <button class="btn-ghost" onclick="loadAttendanceRoster()">Roster Load Karein</button>
+        <button class="btn-ghost" onclick="loadAttendanceRoster()">Load Roster</button>
+        <div id="att_bulk_actions" style="display:none; margin-top:10px;">
+          <button class="btn-ghost btn-small" onclick="markAllAttendance('present')">Mark All Present</button>
+          <button class="btn-ghost btn-small" onclick="markAllAttendance('absent')">Mark All Absent</button>
+        </div>
         <div id="att_roster" style="margin-top:16px;"></div>
-        <button class="btn" style="margin-top:14px; display:none;" id="att_save_btn" onclick="saveAttendance()">Attendance Save Karein (Parents ko msg jayega)</button>
+        <button class="btn" style="margin-top:14px; display:none;" id="att_save_btn" onclick="saveAttendance()">Save Attendance (parents will get a message)</button>
       </div>
 
       <div class="card">
-        <h3 style="margin-bottom:10px;">Register Download Karein</h3>
+        <h3 style="margin-bottom:10px;">Download Register</h3>
         <div class="row">
           <div class="field"><label>Class</label><select id="exp_class"></select></div>
           <div class="field"><label>Month</label><input id="exp_month" type="month"></div>
         </div>
-        <button class="btn-ghost" onclick="downloadRegister()">Monthly Register (Excel/CSV) Download</button>
+        <button class="btn-ghost" onclick="downloadRegister()">Download Monthly Register (Excel/CSV)</button>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="panel" id="panel-timetable">
+      <div class="card">
+        <h3 style="margin-bottom:6px;">Class Timetable</h3>
+        <p class="dim" style="margin-bottom:12px;">Set up each day separately — pick the class and day, fill in periods, save. Saving replaces that day's periods for that class.</p>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="tt_class" onchange="loadTimetableDay()"></select></div>
+          <div class="field"><label>Day</label>
+            <select id="tt_day" onchange="loadTimetableDay()">
+              <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+              <option>Thursday</option><option>Friday</option><option>Saturday</option>
+            </select>
+          </div>
+        </div>
+        <div id="tt_periods"></div>
+        <button class="btn-ghost btn-small" onclick="addTimetableRow()">+ Add Period</button>
+        <button class="btn" style="margin-top:10px;" onclick="saveTimetable()">Save This Day</button>
+      </div>
+      <div class="card">
+        <div class="row" style="align-items:center; margin-bottom:10px;">
+          <h3>Full Week — Download</h3>
+          <div style="text-align:right;"><button class="btn-ghost btn-small" onclick="downloadTimetablePdf()">PDF</button></div>
+        </div>
+        <p class="dim">Downloads the currently selected class's full week (all days already saved).</p>
       </div>
     </div>
 
     <!-- FEES -->
     <div class="panel" id="panel-fees">
       <div class="card">
-        <div class="row">
+        <div class="row" style="align-items:flex-end;">
           <div class="field"><label>Month</label><input id="fee_month" type="month"></div>
-          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadFees()">Load Karein</button></div>
+          <div class="field"><label>Class</label><select id="fee_class"><option value="all">All Classes</option></select></div>
+          <div><button class="btn-ghost" onclick="loadFees()">Load</button></div>
         </div>
+        <div class="row" style="margin-top:10px; justify-content:flex-end;">
+          <div style="text-align:right; flex:none;">
+            <button class="btn-ghost btn-small" onclick="exportFeesExcel()">Excel</button>
+            <button class="btn-ghost btn-small" onclick="exportFeesPdf()">PDF</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
         <table style="margin-top:14px;">
-          <thead><tr><th>Naam</th><th>Class</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="feeTable"></tbody>
         </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAFF -->
+    <div class="panel" id="panel-staff">
+      <div class="card">
+        <div class="row" style="align-items:center; margin-bottom:14px;">
+          <h3>Staff List (<span id="staffCount">0</span>)</h3>
+        </div>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th></th></tr></thead>
+          <tbody id="staffTable"></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 id="addStaffTitle" style="margin-bottom:14px;">Add Staff</h3>
+        <input type="hidden" id="st_edit_id">
+        <div class="row">
+          <div class="field"><label>Name</label><input id="st_name"></div>
+          <div class="field"><label>Role</label>
+            <select id="st_role"><option>Teacher</option><option>Principal</option><option>Accountant</option><option>Peon</option><option>Other</option></select>
+          </div>
+          <div class="field"><label>Phone</label><input id="st_phone" placeholder="9876543210"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Monthly Salary (₹)</label><input id="st_salary" type="number" value="10000"></div>
+          <div class="field"><label>Joining Date</label><input id="st_joining" type="date"></div>
+        </div>
+        <button class="btn" id="st_submit_btn" onclick="addStaff()">Add Staff</button>
+        <button class="btn-ghost" id="st_cancel_btn" onclick="cancelEditStaff()" style="display:none;">Cancel</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Staff Attendance</h3>
+        <div class="row">
+          <div class="field"><label>Date</label><input id="st_att_date" type="date"></div>
+        </div>
+        <button class="btn-ghost" onclick="loadStaffAttendanceRoster()">Load Staff</button>
+        <div id="st_att_bulk" style="display:none; margin-top:10px;">
+          <button class="btn-ghost btn-small" onclick="markAllStaffAttendance('present')">Mark All Present</button>
+          <button class="btn-ghost btn-small" onclick="markAllStaffAttendance('absent')">Mark All Absent</button>
+        </div>
+        <div id="st_att_roster" style="margin-top:14px;"></div>
+        <button class="btn" style="margin-top:12px; display:none;" id="st_att_save_btn" onclick="saveStaffAttendance()">Save Attendance</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Salary Status</h3>
+        <div class="row" style="align-items:flex-end;">
+          <div class="field"><label>Month</label><input id="st_sal_month" type="month"></div>
+          <div><button class="btn-ghost" onclick="loadStaffSalary()">Load</button></div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="margin-top:14px;">
+          <thead><tr><th>Name</th><th>Role</th><th>Salary</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="staffSalaryTable"></tbody>
+        </table>
+        </div>
       </div>
     </div>
 
     <!-- NOTICES -->
     <div class="panel" id="panel-notices">
       <div class="card">
-        <h3 style="margin-bottom:14px;">Notice / Chutti Bhejein</h3>
+        <h3 style="margin-bottom:14px;">Send Notice / Holiday</h3>
         <div class="row">
-          <div class="field"><label>Kisko</label>
-            <select id="notice_class"><option value="all">Sabko (Poora School)</option></select>
+          <div class="field"><label>To</label>
+            <select id="notice_class"><option value="all">Everyone (Whole School)</option></select>
           </div>
         </div>
-        <div class="field"><label>Message</label><textarea id="notice_msg" rows="3" placeholder="jaise: Kal school mein chutti rahegi."></textarea></div>
-        <button class="btn" onclick="sendNotice()">WhatsApp/SMS Bhejein</button>
+        <div class="field"><label>Message</label><textarea id="notice_msg" rows="3" placeholder="e.g.: School will be closed tomorrow."></textarea></div>
+        <button class="btn" onclick="sendNotice()">Send WhatsApp/SMS</button>
       </div>
       <div class="card">
-        <h3 style="margin-bottom:10px;">Pichle Notices</h3>
+        <h3 style="margin-bottom:10px;">Recent Notices</h3>
         <div id="noticeList" class="dim">Loading...</div>
       </div>
     </div>
@@ -234,47 +418,47 @@
             </select>
           </div>
           <div class="field"><label>Class</label><select id="res_class"></select></div>
-          <div class="field"><label>Subject</label><input id="res_subject" placeholder="jaise: Maths"></div>
+          <div class="field"><label>Subject</label><input id="res_subject" placeholder="e.g.: Maths"></div>
           <div class="field"><label>Max Marks</label><input id="res_max" type="number" value="100"></div>
         </div>
-        <button class="btn-ghost" onclick="loadResultRoster()">Students Load Karein</button>
+        <button class="btn-ghost" onclick="loadResultRoster()">Load Students</button>
         <div id="res_roster" style="margin-top:14px;"></div>
-        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Parents ko WhatsApp/SMS bhejein</label><br>
-        <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Marks Save Karein</button>
+        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Send WhatsApp/SMS to parents</label><br>
+        <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Save Marks</button>
       </div>
 
       <div class="card">
         <h3 style="margin-bottom:14px;">Report Card (PDF)</h3>
         <div class="row">
           <div class="field"><label>Class</label><select id="rc_class"></select></div>
-          <div class="field"><label>Student</label><select id="rc_student"><option value="">Pehle class load karein</option></select></div>
+          <div class="field"><label>Student</label><select id="rc_student"><option value="">Load class first</option></select></div>
         </div>
-        <button class="btn-ghost" onclick="loadReportCardStudents()">Students Load Karein</button>
-        <button class="btn" style="margin-top:10px;" onclick="downloadReportCard()">Report Card PDF Download Karein</button>
+        <button class="btn-ghost" onclick="loadReportCardStudents()">Load Students</button>
+        <button class="btn" style="margin-top:10px;" onclick="downloadReportCard()">Download Report Card PDF</button>
       </div>
     </div>
 
     <!-- HOMEWORK -->
     <div class="panel" id="panel-homework">
       <div class="card">
-        <h3 style="margin-bottom:14px;">Aaj Ka Homework Bhejein</h3>
+        <h3 style="margin-bottom:14px;">Send Today's Homework</h3>
         <div class="row">
           <div class="field"><label>Class</label><select id="hw_class"></select></div>
           <div class="field"><label>Date</label><input id="hw_date" type="date"></div>
         </div>
-        <div class="field"><label>Homework (text)</label><textarea id="hw_text" rows="4" placeholder="jaise: Maths - Ex 4.2 Q1-10, Hindi - Path 6 yaad karein"></textarea></div>
-        <div class="field"><label>Photo (seedha camera/gallery se upload karein)</label>
+        <div class="field"><label>Homework (text)</label><textarea id="hw_text" rows="4" placeholder="e.g.: Maths - Ex 4.2 Q1-10, Hindi - Learn Chapter 6"></textarea></div>
+        <div class="field"><label>Photo (upload directly from camera/gallery)</label>
           <input type="file" id="hw_photo_file" accept="image/*" onchange="uploadPhoto(this, 'hw_image', 'hw_photo_status')">
           <div id="hw_photo_status" class="dim" style="margin-top:6px;"></div>
         </div>
-        <div class="field"><label>Ya Photo Link (agar kahin pehle se upload hai)</label><input id="hw_image" placeholder="https://..."></div>
-        <button class="btn" onclick="sendHomework()">Homework Bhejein (Parents ko link jayega)</button>
+        <div class="field"><label>Or Photo Link (if already uploaded somewhere)</label><input id="hw_image" placeholder="https://..."></div>
+        <button class="btn" onclick="sendHomework()">Send Homework (parents will get a link)</button>
       </div>
       <div class="card">
-        <h3 style="margin-bottom:10px;">Pichla Homework</h3>
+        <h3 style="margin-bottom:10px;">Past Homework</h3>
         <div class="row" style="margin-bottom:10px;">
           <div class="field"><label>Class</label><select id="hw_view_class"></select></div>
-          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadHomeworkHistory()">Dekhein</button></div>
+          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadHomeworkHistory()">View</button></div>
         </div>
         <div id="hwList" class="dim">-</div>
       </div>
@@ -283,19 +467,19 @@
     <!-- DATESHEET -->
     <div class="panel" id="panel-datesheet">
       <div class="card">
-        <h3 style="margin-bottom:14px;">Exam Datesheet Bhejein</h3>
+        <h3 style="margin-bottom:14px;">Send Exam Datesheet</h3>
         <div class="row">
           <div class="field"><label>Class</label><select id="ds_class"></select></div>
-          <div class="field"><label>Exam Naam</label><input id="ds_exam" placeholder="jaise: Half Yearly Exam"></div>
+          <div class="field"><label>Exam Name</label><input id="ds_exam" placeholder="e.g.: Half Yearly Exam"></div>
         </div>
-        <div class="field"><label>Datesheet (har line ek din)</label><textarea id="ds_text" rows="5" placeholder="jaise:&#10;25 Sept - Hindi&#10;26 Sept - Maths&#10;27 Sept - Science"></textarea></div>
-        <button class="btn" onclick="sendDatesheet()">Datesheet Bhejein (Parents ko link jayega)</button>
+        <div class="field"><label>Datesheet (one line per day)</label><textarea id="ds_text" rows="5" placeholder="e.g.:&#10;25 Sept - Hindi&#10;26 Sept - Maths&#10;27 Sept - Science"></textarea></div>
+        <button class="btn" onclick="sendDatesheet()">Send Datesheet (parents will get a link)</button>
       </div>
       <div class="card">
-        <h3 style="margin-bottom:10px;">Pichli Datesheets</h3>
+        <h3 style="margin-bottom:10px;">Recent Datesheets</h3>
         <div class="row" style="margin-bottom:10px;">
           <div class="field"><label>Class</label><select id="ds_view_class"></select></div>
-          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadDatesheetHistory()">Dekhein</button></div>
+          <div style="align-self:flex-end;"><button class="btn-ghost" onclick="loadDatesheetHistory()">View</button></div>
         </div>
         <div id="dsList" class="dim">-</div>
       </div>
@@ -305,13 +489,15 @@
     <div class="panel" id="panel-msglog">
       <div class="card">
         <div class="row" style="margin-bottom:10px;">
-          <h3>Bheje Gaye Messages (Pichle 50)</h3>
+          <h3>Messages Sent (Last 50)</h3>
           <div style="text-align:right;"><button class="btn-ghost" onclick="loadMessageLog()">Refresh</button></div>
         </div>
+        <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Kab</th><th>Kisko</th><th>Message</th><th>Status</th></tr></thead>
+          <thead><tr><th>When</th><th>To</th><th>Message</th><th>Status</th></tr></thead>
           <tbody id="msgLogTable"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -324,7 +510,8 @@ const slug = params.get('school');
 let PIN = '';
 let SCHOOL = null;
 let STUDENTS = [];
-const CLASS_LIST = ['Prep', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
+let STAFF = [];
+const CLASS_LIST = ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 function showMsg(text, ok){
   const el = document.getElementById('msg');
@@ -333,10 +520,10 @@ function showMsg(text, ok){
 }
 
 async function init(){
-  if(!slug){ document.getElementById('loginSchoolName').textContent = 'School link galat hai (?school=slug missing).'; return; }
+  if(!slug){ document.getElementById('loginSchoolName').textContent = 'Invalid school link (?school=slug missing).'; return; }
   const res = await fetch('/api/schools?slug=' + encodeURIComponent(slug));
   const school = await res.json();
-  if(!school){ document.getElementById('loginSchoolName').textContent = 'School nahi mila.'; return; }
+  if(!school){ document.getElementById('loginSchoolName').textContent = 'School not found.'; return; }
   SCHOOL = school;
   document.getElementById('loginSchoolName').textContent = school.name;
 }
@@ -359,8 +546,9 @@ async function login(){
     loadNotices();
     loadDashboard();
     loadEnquiries();
+    loadStaff();
   }catch(e){
-    document.getElementById('loginMsg').textContent = 'Galat PIN ya error: ' + e.message;
+    document.getElementById('loginMsg').textContent = 'Incorrect PIN or error: ' + e.message;
   }
 }
 
@@ -377,6 +565,28 @@ function setDefaultDates(){
   document.getElementById('fee_month').value = today.slice(0,7);
   document.getElementById('exp_month').value = today.slice(0,7);
   document.getElementById('hw_date').value = today;
+  document.getElementById('tc_date').value = today;
+  document.getElementById('st_att_date').value = today;
+  document.getElementById('st_sal_month').value = today.slice(0,7);
+}
+
+// ---------- ATTENDANCE INSIGHTS (per class, per student) ----------
+async function loadAttendanceInsights(){
+  const cls = document.getElementById('ai_class').value;
+  const box = document.getElementById('aiTable');
+  box.innerHTML = '<tr><td colspan="4" class="dim">Loading...</td></tr>';
+  const res = await fetch(`/api/attendance-insights?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ box.innerHTML = `<tr><td colspan="4">${data.error}</td></tr>`; return; }
+  if(!data.students.length){ box.innerHTML = '<tr><td colspan="4" class="dim">No students in this class.</td></tr>'; return; }
+  box.innerHTML = data.students.map(s => `
+    <tr>
+      <td>${s.roll_no||'-'}</td>
+      <td>${s.name} ${s.perfectThisMonth ? '🏆' : ''}</td>
+      <td>${s.monthPct === null ? '-' : s.monthPct + '%'}</td>
+      <td>${s.yearPct === null ? '-' : s.yearPct + '%'}</td>
+    </tr>
+  `).join('');
 }
 
 // ---------- DASHBOARD ----------
@@ -385,6 +595,12 @@ async function loadDashboard(){
   const res = await fetch(`/api/dashboard?slug=${slug}&pin=${PIN}`);
   const data = await res.json();
   if(!res.ok) return;
+
+  document.getElementById('stat_students').textContent = STUDENTS.length;
+  const validPcts = data.attendanceTrend.map(d => d.pct).filter(p => p !== null);
+  document.getElementById('stat_attendance').textContent = validPcts.length ? Math.round(validPcts.reduce((a,b)=>a+b,0)/validPcts.length) + '%' : '-';
+  const latestMonth = data.feesTrend[data.feesTrend.length-1];
+  document.getElementById('stat_collection').textContent = latestMonth ? '₹'+latestMonth.total : '₹0';
 
   const attCtx = document.getElementById('attendanceChart');
   if(attendanceChartRef) attendanceChartRef.destroy();
@@ -435,21 +651,77 @@ async function loadDashboard(){
 
 function populateClassDropdowns(){
   const options = CLASS_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
-  ['att_class','exp_class','res_class','hw_class','hw_view_class','rc_class','idc_class','ds_class','ds_view_class'].forEach(id => {
+  ['att_class','exp_class','res_class','hw_class','hw_view_class','rc_class','idc_class','ds_class','ds_view_class','ai_class','tt_class','tc_class'].forEach(id => {
     document.getElementById(id).innerHTML = options;
   });
-  document.getElementById('s_class').innerHTML = '<option value="">Class Chunein</option>' + options;
-  document.getElementById('notice_class').innerHTML = '<option value="all">Sabko (Poora School)</option>' + options;
+  document.getElementById('s_class').innerHTML = '<option value="">Select Class</option>' + options;
+  document.getElementById('notice_class').innerHTML = '<option value="all">Everyone (Whole School)</option>' + options;
+  document.getElementById('stu_filter_class').innerHTML = '<option value="all">All Classes</option>' + options;
+  document.getElementById('fee_class').innerHTML = '<option value="all">All Classes</option>' + options;
+}
+
+function toggleAddStudentForm(){
+  const form = document.getElementById('addStudentForm');
+  const open = form.style.display === 'block';
+  form.style.display = open ? 'none' : 'block';
+  document.getElementById('addStudentToggleBtn').textContent = open ? '+ Add Student' : 'Hide Form';
 }
 
 function renderStudents(){
   document.getElementById('studentCount').textContent = STUDENTS.length;
-  document.getElementById('studentTable').innerHTML = STUDENTS.map(s => `
-    <tr><td>${s.name}</td><td>${s.class}</td><td>${s.roll_no||'-'}</td><td>${s.parent_phone}</td><td>₹${s.monthly_fee||0}</td></tr>
+  const filterClass = document.getElementById('stu_filter_class').value || 'all';
+  const rows = filterClass === 'all' ? STUDENTS : STUDENTS.filter(s => s.class === filterClass);
+  if(!rows.length){
+    document.getElementById('studentTable').innerHTML = '<tr><td colspan="8" class="dim">No students yet — add one below or bulk-import from Excel.</td></tr>';
+    return;
+  }
+  document.getElementById('studentTable').innerHTML = rows.map(s => `
+    <tr>
+      <td>${s.photo_url ? `<img src="${s.photo_url}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;">` : ''}</td>
+      <td>${s.name}</td>
+      <td>${s.father_name||'-'}</td>
+      <td>${s.class}</td>
+      <td>${s.roll_no||'-'}</td>
+      <td>${s.parent_phone}</td>
+      <td>₹${s.monthly_fee||0}</td>
+      <td><button class="btn-ghost btn-small" onclick="editStudent('${s.id}')">Edit</button></td>
+    </tr>
   `).join('');
 }
 
+function editStudent(id){
+  const s = STUDENTS.find(x => x.id === id);
+  if(!s) return;
+  document.getElementById('s_edit_id').value = s.id;
+  document.getElementById('s_name').value = s.name || '';
+  document.getElementById('s_class').value = s.class || '';
+  document.getElementById('s_roll').value = s.roll_no || '';
+  document.getElementById('s_father').value = s.father_name || '';
+  document.getElementById('s_phone').value = s.parent_phone || '';
+  document.getElementById('s_fee').value = s.monthly_fee || 0;
+  document.getElementById('s_dob').value = s.dob || '';
+  document.getElementById('s_photo_url').value = s.photo_url || '';
+  document.getElementById('s_photo_status').textContent = s.photo_url ? 'Existing photo on file' : '';
+  document.getElementById('addStudentTitle').textContent = `Edit ${s.name}`;
+  document.getElementById('s_submit_btn').textContent = 'Update Student';
+  document.getElementById('s_cancel_btn').style.display = 'inline-block';
+  document.getElementById('addStudentForm').style.display = 'block';
+  document.getElementById('addStudentToggleBtn').textContent = 'Hide Form';
+  document.getElementById('addStudentForm').scrollIntoView({ behavior:'smooth' });
+}
+
+function cancelEditStudent(){
+  document.getElementById('s_edit_id').value = '';
+  ['s_name','s_class','s_roll','s_father','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('s_fee').value = 500;
+  document.getElementById('s_photo_status').textContent='';
+  document.getElementById('addStudentTitle').textContent = 'Add New Student';
+  document.getElementById('s_submit_btn').textContent = 'Add Student';
+  document.getElementById('s_cancel_btn').style.display = 'none';
+}
+
 async function addStudent(){
+  const editId = document.getElementById('s_edit_id').value;
   const body = {
     slug, pin: PIN,
     name: document.getElementById('s_name').value.trim(),
@@ -461,7 +733,22 @@ async function addStudent(){
     dob: document.getElementById('s_dob').value || null,
     photo_url: document.getElementById('s_photo_url').value || null,
   };
-  if(!body.name || !body.class || !body.parent_phone){ showMsg('Naam, Class aur Phone zaroori hai', false); return; }
+  if(!body.name || !body.class || !body.parent_phone){ showMsg('Name, Class and Phone are required', false); return; }
+
+  if(editId){
+    body.action = 'update';
+    body.id = editId;
+    const res = await fetch('/api/students', { method:'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+    if(!res.ok){ showMsg(data.error, false); return; }
+    const idx = STUDENTS.findIndex(s => s.id === editId);
+    if(idx > -1) STUDENTS[idx] = data.student;
+    renderStudents(); populateClassDropdowns();
+    cancelEditStudent();
+    showMsg('Student updated!', true);
+    return;
+  }
+
   const res = await fetch('/api/students', { method:'POST', body: JSON.stringify(body) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
@@ -469,7 +756,64 @@ async function addStudent(){
   renderStudents(); populateClassDropdowns();
   ['s_name','s_class','s_roll','s_father','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
   document.getElementById('s_photo_status').textContent='';
-  showMsg('Student jud gaya!', true);
+  showMsg('Student added!', true);
+}
+
+// ---------- BULK IMPORT (Excel) ----------
+async function importBulkStudents(){
+  const fileInput = document.getElementById('bulk_file');
+  const statusEl = document.getElementById('bulk_status');
+  const file = fileInput.files[0];
+  if(!file){ statusEl.textContent = 'Choose a file first.'; return; }
+  statusEl.textContent = 'Reading file...';
+  try{
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+    if(!rows.length){ statusEl.textContent = 'No rows found in the file.'; return; }
+    statusEl.textContent = `Importing ${rows.length} rows...`;
+    const res = await fetch('/api/students', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'bulk', rows }) });
+    const result = await res.json();
+    if(!res.ok){ statusEl.textContent = result.error; return; }
+    statusEl.textContent = `Imported ${result.inserted} students${result.skipped ? `, skipped ${result.skipped} incomplete rows` : ''}.`;
+    fileInput.value = '';
+    // Reload the student list.
+    const listRes = await fetch(`/api/students?slug=${slug}&pin=${PIN}`);
+    const listData = await listRes.json();
+    if(listRes.ok){ STUDENTS = listData.students; renderStudents(); populateClassDropdowns(); }
+  }catch(e){
+    statusEl.textContent = 'Could not read the file — make sure it is a valid Excel/CSV file.';
+  }
+}
+
+// ---------- STUDENT LIST EXPORT ----------
+function exportStudentsExcel(){
+  const filterClass = document.getElementById('stu_filter_class').value || 'all';
+  const rows = filterClass === 'all' ? STUDENTS : STUDENTS.filter(s => s.class === filterClass);
+  const sheetData = rows.map(s => ({
+    Name: s.name, Father: s.father_name||'', Class: s.class, Roll: s.roll_no||'',
+    'Parent Phone': s.parent_phone, 'Monthly Fee': s.monthly_fee||0, DOB: s.dob||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(sheetData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Students');
+  XLSX.writeFile(wb, `students-${filterClass}.xlsx`);
+}
+function exportStudentsPdf(){
+  const filterClass = document.getElementById('stu_filter_class').value || 'all';
+  const rows = filterClass === 'all' ? STUDENTS : STUDENTS.filter(s => s.class === filterClass);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(14); doc.text(`${SCHOOL.name} — Student List (${filterClass})`, 14, 16);
+  let y = 28;
+  doc.setFontSize(9);
+  rows.forEach((s, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    doc.text(`${i+1}. ${s.name} (Roll ${s.roll_no||'-'}) — ${s.class} — ${s.parent_phone}`, 14, y);
+    y += 6;
+  });
+  doc.save(`students-${filterClass}.pdf`);
 }
 
 // ---------- ATTENDANCE ----------
@@ -479,8 +823,14 @@ function loadAttendanceRoster(){
   const roster = STUDENTS.filter(s => s.class === cls);
   attendanceState = {};
   roster.forEach(s => attendanceState[s.id] = 'present');
+  if(!roster.length){
+    document.getElementById('att_roster').innerHTML = '<p class="dim">No students in this class yet — add some in the Students tab first.</p>';
+    document.getElementById('att_bulk_actions').style.display = 'none';
+    document.getElementById('att_save_btn').style.display = 'none';
+    return;
+  }
   document.getElementById('att_roster').innerHTML = roster.map(s => `
-    <div class="row" style="margin-bottom:8px; align-items:center;">
+    <div class="row" data-student-row="${s.id}" style="margin-bottom:8px; align-items:center;">
       <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
       <div class="toggle-row" style="flex:2;">
         <div class="toggle-btn present active" onclick="setAtt('${s.id}','present',this)">Present</div>
@@ -488,7 +838,8 @@ function loadAttendanceRoster(){
       </div>
     </div>
   `).join('');
-  document.getElementById('att_save_btn').style.display = roster.length ? 'inline-block' : 'none';
+  document.getElementById('att_bulk_actions').style.display = 'block';
+  document.getElementById('att_save_btn').style.display = 'inline-block';
 }
 function setAtt(id, status, el){
   attendanceState[id] = status;
@@ -496,15 +847,22 @@ function setAtt(id, status, el){
   row.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
 }
+function markAllAttendance(status){
+  Object.keys(attendanceState).forEach(id => attendanceState[id] = status);
+  document.querySelectorAll('#att_roster [data-student-row]').forEach(row => {
+    row.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    row.querySelector(`.toggle-btn.${status}`).classList.add('active');
+  });
+}
 async function saveAttendance(){
   const cls = document.getElementById('att_class').value;
   const date = document.getElementById('att_date').value;
   const records = Object.entries(attendanceState).map(([student_id,status]) => ({student_id, status}));
-  if(!records.length){ showMsg('Pehle roster load karein', false); return; }
+  if(!records.length){ showMsg('Load the roster first', false); return; }
   const res = await fetch('/api/attendance', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: cls, date, records }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Attendance save ho gayi (${data.saved} students), parents ko msg chala gaya.`, true);
+  showMsg(`Attendance saved (${data.saved} students), message sent to parents.`, true);
 }
 
 async function downloadRegister(){
@@ -541,45 +899,92 @@ async function downloadRegister(){
 }
 
 // ---------- FEES ----------
+let FEE_ROWS = [];
 async function loadFees(){
   const month = document.getElementById('fee_month').value;
+  const filterClass = document.getElementById('fee_class').value || 'all';
   const res = await fetch(`/api/fees?slug=${slug}&pin=${PIN}&month=${month}`);
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  document.getElementById('feeTable').innerHTML = data.students.map(s => `
+  FEE_ROWS = data.students;
+  renderFeeTable(filterClass, month);
+}
+function renderFeeTable(filterClass, month){
+  const rows = (filterClass === 'all' ? FEE_ROWS : FEE_ROWS.filter(s => s.class === filterClass))
+    .slice()
+    .sort((a,b) => (a.paid === b.paid) ? a.name.localeCompare(b.name) : (a.paid ? 1 : -1)); // due first
+  if(!rows.length){ document.getElementById('feeTable').innerHTML = '<tr><td colspan="6" class="dim">No students found.</td></tr>'; return; }
+  document.getElementById('feeTable').innerHTML = rows.map(s => `
     <tr>
-      <td>${s.name}</td><td>${s.class}</td><td>₹${s.monthly_fee}</td>
+      <td>${s.roll_no||'-'}</td><td>${s.name}</td><td>${s.class}</td><td>₹${s.monthly_fee}</td>
       <td><span class="pill ${s.paid?'paid':'due'}">${s.paid?'Paid':'Due'}</span></td>
       <td>
-        ${s.paid ? '-' : `<button class="btn-ghost btn-small" onclick="markPaid('${s.id}', ${s.monthly_fee}, '${month}')">Mark Paid</button>
-        <button class="btn-ghost btn-small" onclick="sendReminder('${s.id}')">Remind</button>`}
+        ${s.paid ? '-' : `
+          <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
+            <input type="number" id="pay_amt_${s.id}" value="${s.monthly_fee}" style="width:70px;">
+            <input type="file" id="pay_photo_${s.id}" accept="image/*" style="display:none;" onchange="uploadPhoto(this,'pay_photo_url_${s.id}','pay_status_${s.id}')">
+            <input type="hidden" id="pay_photo_url_${s.id}">
+            <button class="btn-ghost btn-small" onclick="document.getElementById('pay_photo_${s.id}').click()" title="Attach receipt photo (optional)">📎</button>
+            <button class="btn-ghost btn-small" onclick="markPaid('${s.id}', '${month}')">Record</button>
+            <button class="btn-ghost btn-small" onclick="sendReminder('${s.id}')">Remind</button>
+          </div>
+          <div id="pay_status_${s.id}" class="dim" style="font-size:0.75rem;"></div>
+        `}
       </td>
     </tr>
   `).join('');
 }
-async function markPaid(student_id, amount, month){
-  const res = await fetch('/api/fees', { method:'POST', body: JSON.stringify({ slug, pin: PIN, student_id, amount, month }) });
+async function markPaid(student_id, month){
+  const amount = Number(document.getElementById(`pay_amt_${student_id}`).value) || 0;
+  const receipt_url = document.getElementById(`pay_photo_url_${student_id}`).value || null;
+  const res = await fetch('/api/fees', { method:'POST', body: JSON.stringify({ slug, pin: PIN, student_id, amount, month, receipt_url }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg('Fees mark ho gayi, WhatsApp receipt bhej diya.', true);
+  showMsg('Payment recorded, WhatsApp receipt sent.', true);
   loadFees();
 }
 async function sendReminder(student_id){
   const res = await fetch('/api/fees', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'reminder', student_id }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg('Reminder bhej diya.', true);
+  showMsg('Reminder sent.', true);
+}
+function exportFeesExcel(){
+  const month = document.getElementById('fee_month').value;
+  const filterClass = document.getElementById('fee_class').value || 'all';
+  const rows = filterClass === 'all' ? FEE_ROWS : FEE_ROWS.filter(s => s.class === filterClass);
+  const sheetData = rows.map(s => ({ Roll: s.roll_no||'', Name: s.name, Class: s.class, Fee: s.monthly_fee, Status: s.paid ? 'Paid' : 'Due' }));
+  const ws = XLSX.utils.json_to_sheet(sheetData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fees');
+  XLSX.writeFile(wb, `fees-${filterClass}-${month}.xlsx`);
+}
+function exportFeesPdf(){
+  const month = document.getElementById('fee_month').value;
+  const filterClass = document.getElementById('fee_class').value || 'all';
+  const rows = filterClass === 'all' ? FEE_ROWS : FEE_ROWS.filter(s => s.class === filterClass);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(14); doc.text(`${SCHOOL.name} — Fees Status (${filterClass}, ${month})`, 14, 16);
+  let y = 28;
+  doc.setFontSize(9);
+  rows.forEach((s, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    doc.text(`${i+1}. ${s.name} (Roll ${s.roll_no||'-'}) — ${s.class} — ₹${s.monthly_fee} — ${s.paid?'Paid':'Due'}`, 14, y);
+    y += 6;
+  });
+  doc.save(`fees-${filterClass}-${month}.pdf`);
 }
 
 // ---------- NOTICES ----------
 async function sendNotice(){
   const className = document.getElementById('notice_class').value;
   const message = document.getElementById('notice_msg').value.trim();
-  if(!message){ showMsg('Message likhein', false); return; }
+  if(!message){ showMsg('Write a message', false); return; }
   const res = await fetch('/api/notices', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, message }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Notice bhej diya (${data.sentTo} parents ko).`, true);
+  showMsg(`Notice sent (to ${data.sentTo} parents).`, true);
   document.getElementById('notice_msg').value='';
   loadNotices();
 }
@@ -588,8 +993,8 @@ async function loadNotices(){
   const data = await res.json();
   if(!res.ok) return;
   const box = document.getElementById('noticeList');
-  if(!data.notices.length){ box.textContent='Koi notice nahi hai abhi.'; return; }
-  box.innerHTML = data.notices.map(n => `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><b>${n.class==='all'?'Sabko':n.class}:</b> ${n.message} <span class="dim">(${new Date(n.created_at).toLocaleDateString()})</span></div>`).join('');
+  if(!data.notices.length){ box.textContent='No notices yet.'; return; }
+  box.innerHTML = data.notices.map(n => `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><b>${n.class==='all'?'Everyone':n.class}:</b> ${n.message} <span class="dim">(${new Date(n.created_at).toLocaleDateString()})</span></div>`).join('');
 }
 
 // ---------- RESULTS ----------
@@ -610,7 +1015,7 @@ async function saveResults(){
   const subject = document.getElementById('res_subject').value.trim();
   const max_marks = Number(document.getElementById('res_max').value) || 100;
   const notify = document.getElementById('res_notify').checked;
-  if(!subject){ showMsg('Subject likhein', false); return; }
+  if(!subject){ showMsg('Enter subject', false); return; }
   const entries = resultRoster.map(s => ({
     student_id: s.id, subject, max_marks,
     marks_obtained: Number(document.getElementById('marks_'+s.id).value) || 0,
@@ -618,7 +1023,7 @@ async function saveResults(){
   const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, exam_name, entries, notify }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Marks save ho gaye (${data.saved} students).`, true);
+  showMsg(`Marks saved (${data.saved} students).`, true);
 }
 
 // ---------- REPORT CARD PDF ----------
@@ -626,19 +1031,19 @@ function loadReportCardStudents(){
   const cls = document.getElementById('rc_class').value;
   const roster = STUDENTS.filter(s => s.class === cls);
   const sel = document.getElementById('rc_student');
-  if(!roster.length){ sel.innerHTML = '<option value="">Is class mein koi student nahi</option>'; return; }
+  if(!roster.length){ sel.innerHTML = '<option value="">No students in this class</option>'; return; }
   sel.innerHTML = roster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
 }
 async function downloadReportCard(){
   const cls = document.getElementById('rc_class').value;
   const studentId = document.getElementById('rc_student').value;
-  if(!studentId){ showMsg('Pehle student select karein', false); return; }
+  if(!studentId){ showMsg('Select a student first', false); return; }
   const res = await fetch(`/api/results?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
   const allEntries = data.results || [];
   const entries = allEntries.filter(r => r.student_id === studentId);
-  if(!entries.length){ showMsg('Is student ka koi result nahi mila', false); return; }
+  if(!entries.length){ showMsg('No results found for this student', false); return; }
   const student = STUDENTS.find(s => s.id === studentId);
 
   // Totals per student per exam (for rank), from the same class-wide fetch — no extra API call needed.
@@ -694,8 +1099,9 @@ async function loadEnquiries(){
   const box = document.getElementById('enqTable');
   const total = data.enquiries.length;
   const converted = data.enquiries.filter(e => e.converted).length;
-  document.getElementById('enqStats').textContent = `${converted} / ${total} admission mein convert hui`;
-  if(!total){ box.innerHTML = '<tr><td colspan="5" class="dim">Koi enquiry nahi hai abhi.</td></tr>'; return; }
+  document.getElementById('enqStats').textContent = `${converted} / ${total} converted to admission`;
+  document.getElementById('stat_conversion').textContent = total ? `${converted}/${total}` : '-';
+  if(!total){ box.innerHTML = '<tr><td colspan="5" class="dim">No enquiries yet.</td></tr>'; return; }
   box.innerHTML = data.enquiries.map(e => `
     <tr>
       <td>${e.name}</td><td>${e.phone}</td><td>${e.class_interested||'-'}</td>
@@ -708,7 +1114,7 @@ async function convertEnquiry(id){
   const res = await fetch('/api/enquiry', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'convert', id }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg('Admission mein convert mark kar diya.', true);
+  showMsg('Marked as converted to admission.', true);
   loadEnquiries();
 }
 
@@ -717,11 +1123,11 @@ async function sendDatesheet(){
   const className = document.getElementById('ds_class').value;
   const exam_name = document.getElementById('ds_exam').value.trim();
   const text = document.getElementById('ds_text').value.trim();
-  if(!exam_name || !text){ showMsg('Exam naam aur datesheet likhein', false); return; }
+  if(!exam_name || !text){ showMsg('Enter exam name and datesheet', false); return; }
   const res = await fetch('/api/datesheet', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, exam_name, text }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Datesheet bhej diya (${data.sentTo} parents ko).`, true);
+  showMsg(`Datesheet sent (to ${data.sentTo} parents).`, true);
   document.getElementById('ds_exam').value=''; document.getElementById('ds_text').value='';
 }
 async function loadDatesheetHistory(){
@@ -730,7 +1136,7 @@ async function loadDatesheetHistory(){
   const data = await res.json();
   const box = document.getElementById('dsList');
   if(!res.ok){ box.textContent = data.error; return; }
-  if(!data.datesheets.length){ box.textContent = 'Is class ki koi datesheet nahi hai abhi.'; return; }
+  if(!data.datesheets.length){ box.textContent = 'No datesheet for this class yet.'; return; }
   box.innerHTML = data.datesheets.map(d => `
     <div style="padding:8px 0; border-bottom:1px solid var(--line);">
       <b>${d.exam_name}</b> <span class="dim">(${new Date(d.created_at).toLocaleDateString('en-IN')})</span><br>
@@ -745,13 +1151,13 @@ async function loadMessageLog(){
   const data = await res.json();
   const box = document.getElementById('msgLogTable');
   if(!res.ok){ box.innerHTML = `<tr><td colspan="4">${data.error}</td></tr>`; return; }
-  if(!data.log.length){ box.innerHTML = '<tr><td colspan="4" class="dim">Koi message nahi bheja gaya abhi.</td></tr>'; return; }
+  if(!data.log.length){ box.innerHTML = '<tr><td colspan="4" class="dim">No messages sent yet.</td></tr>'; return; }
   box.innerHTML = data.log.map(m => `
     <tr>
       <td>${new Date(m.created_at).toLocaleString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</td>
       <td>${m.phone}</td>
       <td style="max-width:320px; white-space:pre-wrap;">${m.message}</td>
-      <td><span class="pill ${m.status==='sent'?'paid':'due'}">${m.status}</span></td>
+      <td><span class="pill ${m.status==='sent'?'paid':(m.status==='dev_mode'?'warn':'due')}">${m.status}</span></td>
     </tr>
   `).join('');
 }
@@ -762,7 +1168,7 @@ function loadIdCardStudents(){
   const cls = document.getElementById('idc_class').value;
   idCardRoster = STUDENTS.filter(s => s.class === cls);
   const sel = document.getElementById('idc_student');
-  if(!idCardRoster.length){ sel.innerHTML = '<option value="">Is class mein koi student nahi</option>'; return; }
+  if(!idCardRoster.length){ sel.innerHTML = '<option value="">No students in this class</option>'; return; }
   sel.innerHTML = idCardRoster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
 }
 function loadImageAsDataUrl(url){
@@ -781,7 +1187,7 @@ function loadImageAsDataUrl(url){
 }
 async function downloadIdCard(){
   const studentId = document.getElementById('idc_student').value;
-  if(!studentId){ showMsg('Pehle student select karein', false); return; }
+  if(!studentId){ showMsg('Select a student first', false); return; }
   const student = idCardRoster.find(s => s.id === studentId);
 
   const { jsPDF } = window.jspdf;
@@ -828,8 +1234,8 @@ async function uploadPhoto(inputEl, targetFieldId, statusId){
   const file = inputEl.files[0];
   const statusEl = document.getElementById(statusId);
   if(!file) return;
-  if(file.size > 4*1024*1024){ statusEl.textContent = 'Photo 4MB se badi hai, chhoti photo chunein.'; return; }
-  statusEl.textContent = 'Upload ho raha hai...';
+  if(file.size > 4*1024*1024){ statusEl.textContent = 'Photo is larger than 4MB, please choose a smaller one.'; return; }
+  statusEl.textContent = 'Uploading...';
   try{
     const dataBase64 = await fileToBase64(file);
     const res = await fetch('/api/upload', { method:'POST', body: JSON.stringify({
@@ -838,9 +1244,9 @@ async function uploadPhoto(inputEl, targetFieldId, statusId){
     const data = await res.json();
     if(!res.ok) throw new Error(data.error);
     document.getElementById(targetFieldId).value = data.url;
-    statusEl.textContent = 'Upload ho gaya ✓';
+    statusEl.textContent = 'Uploaded ✓';
   }catch(e){
-    statusEl.textContent = 'Upload fail: ' + e.message;
+    statusEl.textContent = 'Upload failed: ' + e.message;
   }
 }
 
@@ -850,11 +1256,11 @@ async function sendHomework(){
   const date = document.getElementById('hw_date').value;
   const text = document.getElementById('hw_text').value.trim();
   const image_url = document.getElementById('hw_image').value.trim();
-  if(!text && !image_url){ showMsg('Homework text ya photo link daalein', false); return; }
+  if(!text && !image_url){ showMsg('Enter homework text or a photo link', false); return; }
   const res = await fetch('/api/homework', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: className, date, text, image_url }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Homework bhej diya (${data.sentTo} parents ko link gaya).`, true);
+  showMsg(`Homework sent (link sent to ${data.sentTo} parents).`, true);
   document.getElementById('hw_text').value=''; document.getElementById('hw_image').value='';
   document.getElementById('hw_photo_file').value=''; document.getElementById('hw_photo_status').textContent='';
 }
@@ -864,12 +1270,289 @@ async function loadHomeworkHistory(){
   const data = await res.json();
   const box = document.getElementById('hwList');
   if(!res.ok){ box.textContent = data.error; return; }
-  if(!data.homework.length){ box.textContent = 'Is class ka koi homework nahi hai abhi.'; return; }
+  if(!data.homework.length){ box.textContent = 'No homework for this class yet.'; return; }
   box.innerHTML = data.homework.map(h => `
     <div style="padding:8px 0; border-bottom:1px solid var(--line);">
       <b>${new Date(h.date).toLocaleDateString('en-IN')}:</b> ${h.text || ''} ${h.image_url ? '📷' : ''}
     </div>
   `).join('');
+}
+
+// ---------- TIMETABLE ----------
+function emptyPeriodRow(n){
+  return `<div class="row tt-row" data-period="${n}" style="margin-bottom:8px;">
+    <input placeholder="Time (e.g. 9:00-9:40)" class="tt-time">
+    <input placeholder="Subject" class="tt-subject">
+    <input placeholder="Teacher" class="tt-teacher">
+  </div>`;
+}
+function addTimetableRow(){
+  const box = document.getElementById('tt_periods');
+  const n = box.querySelectorAll('.tt-row').length + 1;
+  box.insertAdjacentHTML('beforeend', emptyPeriodRow(n));
+}
+async function loadTimetableDay(){
+  const cls = document.getElementById('tt_class').value;
+  const day = document.getElementById('tt_day').value;
+  const box = document.getElementById('tt_periods');
+  box.innerHTML = '<p class="dim">Loading...</p>';
+  const res = await fetch(`/api/timetable?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ box.innerHTML = `<p class="dim">${data.error}</p>`; return; }
+  const dayRows = (data.slots || []).filter(s => s.day_of_week === day).sort((a,b) => a.period_no - b.period_no);
+  if(!dayRows.length){
+    box.innerHTML = '';
+    addTimetableRow(); addTimetableRow(); addTimetableRow();
+    return;
+  }
+  box.innerHTML = dayRows.map((s, i) => `
+    <div class="row tt-row" data-period="${i+1}" style="margin-bottom:8px;">
+      <input placeholder="Time" class="tt-time" value="${s.time_range||''}">
+      <input placeholder="Subject" class="tt-subject" value="${s.subject||''}">
+      <input placeholder="Teacher" class="tt-teacher" value="${s.teacher_name||''}">
+    </div>
+  `).join('');
+}
+async function saveTimetable(){
+  const cls = document.getElementById('tt_class').value;
+  const day = document.getElementById('tt_day').value;
+  const rows = [...document.querySelectorAll('#tt_periods .tt-row')].map((row, i) => ({
+    period_no: i+1,
+    time_range: row.querySelector('.tt-time').value.trim(),
+    subject: row.querySelector('.tt-subject').value.trim(),
+    teacher_name: row.querySelector('.tt-teacher').value.trim(),
+  }));
+  const res = await fetch('/api/timetable', { method:'POST', body: JSON.stringify({ slug, pin: PIN, class: cls, day_of_week: day, periods: rows }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`${day}'s timetable saved for ${cls}.`, true);
+}
+async function downloadTimetablePdf(){
+  const cls = document.getElementById('tt_class').value;
+  const res = await fetch(`/api/timetable?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(14); doc.text(`${SCHOOL.name} — Timetable — ${cls}`, 14, 16);
+  let y = 28;
+  days.forEach(day => {
+    const rows = (data.slots || []).filter(s => s.day_of_week === day).sort((a,b) => a.period_no - b.period_no);
+    if(!rows.length) return;
+    if(y > 260){ doc.addPage(); y = 20; }
+    doc.setFontSize(11); doc.setTextColor(200,90,0); doc.text(day, 14, y); y += 7;
+    doc.setFontSize(9); doc.setTextColor(0,0,0);
+    rows.forEach(r => {
+      doc.text(`${r.time_range||''}  ${r.subject||''}  ${r.teacher_name ? '('+r.teacher_name+')' : ''}`, 18, y);
+      y += 6;
+    });
+    y += 4;
+  });
+  doc.save(`timetable-${cls}.pdf`);
+}
+
+// ---------- TRANSFER CERTIFICATE ----------
+let tcRoster = [];
+function loadTcStudents(){
+  const cls = document.getElementById('tc_class').value;
+  tcRoster = STUDENTS.filter(s => s.class === cls);
+  const sel = document.getElementById('tc_student');
+  if(!tcRoster.length){ sel.innerHTML = '<option value="">No students in this class</option>'; return; }
+  sel.innerHTML = tcRoster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
+}
+async function issueTc(){
+  const studentId = document.getElementById('tc_student').value;
+  if(!studentId){ showMsg('Select a student first', false); return; }
+  const tc_number = document.getElementById('tc_number').value.trim();
+  if(!tc_number){ showMsg('Enter a TC number', false); return; }
+  const body = {
+    slug, pin: PIN, student_id: studentId, tc_number,
+    date_of_leaving: document.getElementById('tc_date').value,
+    reason: document.getElementById('tc_reason').value.trim(),
+    conduct: document.getElementById('tc_conduct').value,
+    remarks: document.getElementById('tc_remarks').value.trim(),
+  };
+  const res = await fetch('/api/tc', { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+
+  const r = data.record;
+  const s = r.students;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.text(SCHOOL.name, 105, 20, { align:'center' });
+  doc.setFontSize(10); doc.setTextColor(120,120,120);
+  if(SCHOOL.address) doc.text(SCHOOL.address, 105, 27, { align:'center' });
+  doc.setDrawColor(255,106,0); doc.line(14, 33, 196, 33);
+  doc.setFontSize(14); doc.setTextColor(0,0,0); doc.text('TRANSFER CERTIFICATE', 105, 43, { align:'center' });
+
+  const lines = [
+    [`TC Number`, r.tc_number],
+    [`Student Name`, s.name],
+    [`Father's Name`, s.father_name || '-'],
+    [`Date of Birth`, s.dob || '-'],
+    [`Class`, s.class],
+    [`Roll No.`, s.roll_no || '-'],
+    [`Date of Leaving`, r.date_of_leaving],
+    [`Reason for Leaving`, r.reason || '-'],
+    [`Conduct`, r.conduct],
+    [`Remarks`, r.remarks || '-'],
+  ];
+  let y = 58;
+  doc.setFontSize(11);
+  lines.forEach(([label, value]) => {
+    doc.setTextColor(120,120,120); doc.text(`${label}:`, 20, y);
+    doc.setTextColor(0,0,0); doc.text(String(value), 90, y);
+    y += 10;
+  });
+  doc.setFontSize(9); doc.setTextColor(150,150,150);
+  doc.text(`Issued on ${new Date().toLocaleDateString('en-IN')}`, 20, y+10);
+  doc.text('Principal / Authorized Signatory: ____________________', 20, y+28);
+
+  doc.save(`TC-${r.tc_number}-${s.name.replace(/\s+/g,'_')}.pdf`);
+  showMsg('TC issued and downloaded. Student moved to inactive.', true);
+
+  const idx = STUDENTS.findIndex(x => x.id === studentId);
+  if(idx > -1) STUDENTS.splice(idx, 1);
+  renderStudents();
+}
+
+// ---------- STAFF ----------
+async function loadStaff(){
+  const res = await fetch(`/api/staff?slug=${slug}&pin=${PIN}`);
+  const data = await res.json();
+  if(!res.ok) return;
+  STAFF = data.staff || [];
+  renderStaffTable();
+}
+function renderStaffTable(){
+  document.getElementById('staffCount').textContent = STAFF.length;
+  if(!STAFF.length){ document.getElementById('staffTable').innerHTML = '<tr><td colspan="5" class="dim">No staff added yet.</td></tr>'; return; }
+  document.getElementById('staffTable').innerHTML = STAFF.map(s => `
+    <tr>
+      <td>${s.name}</td><td>${s.role}</td><td>${s.phone||'-'}</td><td>₹${s.monthly_salary||0}</td>
+      <td><button class="btn-ghost btn-small" onclick="editStaff('${s.id}')">Edit</button></td>
+    </tr>
+  `).join('');
+}
+function editStaff(id){
+  const s = STAFF.find(x => x.id === id);
+  if(!s) return;
+  document.getElementById('st_edit_id').value = s.id;
+  document.getElementById('st_name').value = s.name;
+  document.getElementById('st_role').value = s.role;
+  document.getElementById('st_phone').value = s.phone || '';
+  document.getElementById('st_salary').value = s.monthly_salary || 0;
+  document.getElementById('st_joining').value = s.joining_date || '';
+  document.getElementById('addStaffTitle').textContent = `Edit ${s.name}`;
+  document.getElementById('st_submit_btn').textContent = 'Update Staff';
+  document.getElementById('st_cancel_btn').style.display = 'inline-block';
+}
+function cancelEditStaff(){
+  document.getElementById('st_edit_id').value = '';
+  ['st_name','st_phone','st_joining'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('st_salary').value = 10000;
+  document.getElementById('addStaffTitle').textContent = 'Add Staff';
+  document.getElementById('st_submit_btn').textContent = 'Add Staff';
+  document.getElementById('st_cancel_btn').style.display = 'none';
+}
+async function addStaff(){
+  const editId = document.getElementById('st_edit_id').value;
+  const body = {
+    slug, pin: PIN,
+    name: document.getElementById('st_name').value.trim(),
+    role: document.getElementById('st_role').value,
+    phone: document.getElementById('st_phone').value.trim(),
+    monthly_salary: Number(document.getElementById('st_salary').value) || 0,
+    joining_date: document.getElementById('st_joining').value || null,
+  };
+  if(!body.name){ showMsg('Name is required', false); return; }
+  if(editId){ body.action = 'update'; body.id = editId; }
+  const res = await fetch('/api/staff', { method:'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  if(editId){
+    const idx = STAFF.findIndex(s => s.id === editId);
+    if(idx > -1) STAFF[idx] = data.staff;
+    cancelEditStaff();
+    showMsg('Staff updated!', true);
+  }else{
+    STAFF.push(data.staff);
+    ['st_name','st_phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('st_joining').value = '';
+    showMsg('Staff added!', true);
+  }
+  renderStaffTable();
+}
+
+let staffAttendanceState = {};
+function loadStaffAttendanceRoster(){
+  staffAttendanceState = {};
+  STAFF.forEach(s => staffAttendanceState[s.id] = 'present');
+  const box = document.getElementById('st_att_roster');
+  if(!STAFF.length){
+    box.innerHTML = '<p class="dim">No staff added yet — add someone in the form above first.</p>';
+    document.getElementById('st_att_bulk').style.display = 'none';
+    document.getElementById('st_att_save_btn').style.display = 'none';
+    return;
+  }
+  box.innerHTML = STAFF.map(s => `
+    <div class="row" data-staff-row="${s.id}" style="margin-bottom:8px; align-items:center;">
+      <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.role})</span></div>
+      <div class="toggle-row" style="flex:2;">
+        <div class="toggle-btn present active" onclick="setStaffAtt('${s.id}','present',this)">Present</div>
+        <div class="toggle-btn absent" onclick="setStaffAtt('${s.id}','absent',this)">Absent</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('st_att_bulk').style.display = 'block';
+  document.getElementById('st_att_save_btn').style.display = 'inline-block';
+}
+function setStaffAtt(id, status, el){
+  staffAttendanceState[id] = status;
+  const row = el.parentElement;
+  row.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function markAllStaffAttendance(status){
+  Object.keys(staffAttendanceState).forEach(id => staffAttendanceState[id] = status);
+  document.querySelectorAll('#st_att_roster [data-staff-row]').forEach(row => {
+    row.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    row.querySelector(`.toggle-btn.${status}`).classList.add('active');
+  });
+}
+async function saveStaffAttendance(){
+  const date = document.getElementById('st_att_date').value;
+  const records = Object.entries(staffAttendanceState).map(([staff_id,status]) => ({staff_id, status}));
+  if(!records.length){ showMsg('Load staff first', false); return; }
+  const res = await fetch('/api/staff-attendance', { method:'POST', body: JSON.stringify({ slug, pin: PIN, date, records }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Staff attendance saved (${data.saved} staff).`, true);
+}
+
+async function loadStaffSalary(){
+  const month = document.getElementById('st_sal_month').value;
+  const res = await fetch(`/api/staff-salary?slug=${slug}&pin=${PIN}&month=${month}`);
+  const data = await res.json();
+  const box = document.getElementById('staffSalaryTable');
+  if(!res.ok){ box.innerHTML = `<tr><td colspan="5">${data.error}</td></tr>`; return; }
+  if(!data.staff.length){ box.innerHTML = '<tr><td colspan="5" class="dim">No staff added yet.</td></tr>'; return; }
+  box.innerHTML = data.staff.map(s => `
+    <tr>
+      <td>${s.name}</td><td>${s.role}</td><td>₹${s.monthly_salary}</td>
+      <td><span class="pill ${s.paid?'paid':'due'}">${s.paid?'Paid':'Due'}</span></td>
+      <td>${s.paid ? '-' : `<button class="btn-ghost btn-small" onclick="markStaffSalaryPaid('${s.id}', ${s.monthly_salary}, '${month}')">Record</button>`}</td>
+    </tr>
+  `).join('');
+}
+async function markStaffSalaryPaid(staff_id, amount, month){
+  const res = await fetch('/api/staff-salary', { method:'POST', body: JSON.stringify({ slug, pin: PIN, staff_id, amount, month }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Salary recorded.', true);
+  loadStaffSalary();
 }
 </script>
 </body>

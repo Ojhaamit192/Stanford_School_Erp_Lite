@@ -11,6 +11,9 @@
 [functions."birthday-wish"]
   schedule = "0 3 * * *" # 03:00 UTC = 8:30 AM IST, daily
 
+[functions."fee-reminder"]
+  schedule = "0 4 5,15 * *" # 04:00 UTC = 9:30 AM IST, on the 5th and 15th
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

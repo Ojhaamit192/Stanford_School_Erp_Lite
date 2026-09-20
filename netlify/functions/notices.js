@@ -26,7 +26,7 @@ exports.handler = async (event) => {
       const school = await verifyPin(supabase, body.slug, body.pin);
       const className = body.class || "all";
       const message = body.message;
-      if (!message) return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Message zaroori hai" }) };
+      if (!message) return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Message is required" }) };
 
       const { data: notice, error: nErr } = await supabase
         .from("notices")

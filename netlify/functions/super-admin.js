@@ -7,7 +7,7 @@ exports.handler = async (event) => {
   const masterPassword = process.env.SUPER_ADMIN_PASSWORD;
   const { password } = event.queryStringParameters || {};
   if (!masterPassword || password !== masterPassword) {
-    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: "Galat password" }) };
+    return { statusCode: 401, headers: CORS_HEADERS, body: JSON.stringify({ error: "Incorrect password" }) };
   }
 
   const supabase = getSupabase();

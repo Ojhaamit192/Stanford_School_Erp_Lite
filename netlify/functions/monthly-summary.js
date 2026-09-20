@@ -53,7 +53,7 @@ exports.handler = async () => {
       const homeworkCount = homework?.length || 0;
 
       if (school.phone) {
-        const msg = `${school.name} - ${label} Summary: Fees collection Rs.${collection}, Attendance average ${attendancePct}%, Homework bheja gaya ${homeworkCount} baar.`;
+        const msg = `${school.name} - ${label} Summary: Fees collection Rs.${collection}, Attendance average ${attendancePct}%, Homework sent ${homeworkCount} times.`;
         await sendSms(school.phone, msg, { supabase, schoolId: school.id });
       }
     } catch (err) {
