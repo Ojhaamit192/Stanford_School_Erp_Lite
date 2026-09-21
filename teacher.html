@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Lite — Teacher Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<style>
+  :root{
+    --bg:#0D0A08; --bg-panel:#1A130E; --bg-panel-2:#241A12; --line:#3D2A1A;
+    --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A;
+    --success:#5EAE7C; --danger:#E0574A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:700px; margin:0 auto; padding:24px 16px 80px;}
+  header{border-bottom:1px solid var(--line); padding:18px 0; margin-bottom:20px;}
+  header .wrap{display:flex; justify-content:space-between; align-items:center; padding-top:0; padding-bottom:0;}
+  .logo{display:flex; align-items:center; gap:10px; font-size:1.05rem; font-weight:600;}
+  .logo span{color:var(--gold-soft);}
+
+  input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
+  input:focus, select:focus, textarea:focus{border-color:var(--gold-soft); outline:none;}
+  label{font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; display:block;}
+  .field{margin-bottom:14px;}
+  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer;}
+  .btn:hover{background:var(--gold-soft);}
+  .btn-ghost{background:none; border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:8px; font-size:0.88rem; cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--gold-soft);}
+  .btn-small{padding:6px 12px; font-size:0.82rem; border-radius:6px;}
+
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:20px;}
+  .card h3{margin-bottom:14px; font-size:1.05rem;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .row > *{flex:1; min-width:140px;}
+
+  .login-box{max-width:360px; margin:80px auto; text-align:center;}
+  .login-box h2{margin-bottom:18px;}
+
+  .tabs{display:flex; gap:6px; overflow-x:auto; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .tab{padding:10px 16px; font-size:0.9rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent;}
+  .tab.active{color:var(--gold-soft); border-color:var(--gold-soft); font-weight:600;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .toggle-row{display:flex; gap:6px;}
+  .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center;}
+  .toggle-btn.present.active{background:var(--success); color:#0a1a0f; border-color:var(--success); font-weight:600;}
+  .toggle-btn.absent.active{background:var(--danger); color:#2a0906; border-color:var(--danger); font-weight:600;}
+
+  .msg-thread{border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; max-height:220px; overflow-y:auto;}
+  .msg-bubble{padding:6px 10px; border-radius:8px; margin-bottom:6px; font-size:0.85rem; max-width:80%;}
+  .msg-bubble.parent{background:var(--bg-panel-2);}
+  .msg-bubble.school{background:rgba(255,106,0,0.15); margin-left:auto;}
+  .msg-flex{display:flex; flex-direction:column;}
+
+  #msg{font-size:0.88rem; padding:8px 0; min-height:18px;}
+  #msg.ok{color:var(--success);} #msg.err{color:var(--danger);}
+  .dim{color:var(--text-dim); font-size:0.85rem;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2>Teacher Login</h2>
+  <div class="field"><input id="phoneInput" placeholder="Your registered phone number" inputmode="tel"></div>
+  <div class="field"><input id="pinInput" placeholder="PIN" type="password" inputmode="numeric"></div>
+  <button class="btn" style="width:100%" onclick="login()">Login</button>
+  <p id="loginMsg" style="color:var(--danger); margin-top:10px; font-size:0.85rem;"></p>
+</div>
+
+<div id="appScreen" style="display:none;">
+  <header><div class="wrap">
+    <div class="logo">School<span>Lite</span> — Teacher</div>
+    <div class="dim" id="teacherNameHeader"></div>
+  </div></header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="attendance">Attendance</div>
+      <div class="tab" data-tab="homework">Homework</div>
+      <div class="tab" data-tab="results">Results</div>
+      <div class="tab" data-tab="timetable">Timetable</div>
+      <div class="tab" data-tab="messages">Messages</div>
+    </div>
+
+    <div id="msg"></div>
+
+    <!-- ATTENDANCE -->
+    <div class="panel active" id="panel-attendance">
+      <div class="card">
+        <div class="row">
+          <div class="field"><label>Class</label><select id="att_class"></select></div>
+          <div class="field"><label>Date</label><input id="att_date" type="date"></div>
+        </div>
+        <button class="btn-ghost" onclick="loadAttendanceRoster()">Load Roster</button>
+        <div id="att_roster" style="margin-top:16px;"></div>
+        <button class="btn" style="margin-top:14px; display:none;" id="att_save_btn" onclick="saveAttendance()">Save Attendance</button>
+      </div>
+    </div>
+
+    <!-- HOMEWORK -->
+    <div class="panel" id="panel-homework">
+      <div class="card">
+        <h3>Send Today's Homework</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="hw_class" onchange="loadHomeworkHistory()"></select></div>
+          <div class="field"><label>Date</label><input id="hw_date" type="date"></div>
+        </div>
+        <div class="field"><label>Homework</label><textarea id="hw_text" rows="4" placeholder="e.g. Maths - Ex 4.2 Q1-10"></textarea></div>
+        <button class="btn" onclick="sendHomework()">Send Homework</button>
+      </div>
+      <div class="card">
+        <h3>Recent Homework</h3>
+        <div id="hwList" class="dim">Select a class above to see history.</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel" id="panel-results">
+      <div class="card">
+        <h3>Enter Marks</h3>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="res_class" onchange="loadResultRoster()"></select></div>
+          <div class="field"><label>Exam</label>
+            <select id="res_exam"><option>Monthly Test</option><option>Half Yearly</option><option>Annual Exam</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Subject</label><input id="res_subject" placeholder="e.g. Maths"></div>
+          <div class="field"><label>Max Marks</label><input id="res_max" type="number" value="100"></div>
+        </div>
+        <div id="res_roster"></div>
+        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Send report card link to parents</label><br>
+        <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Save Marks</button>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="panel" id="panel-timetable">
+      <div class="card">
+        <div class="row"><div class="field"><label>Class</label><select id="tt_class" onchange="loadTimetableView()"></select></div></div>
+        <div id="ttView" class="dim">Select a class above.</div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="panel" id="panel-messages">
+      <div class="card">
+        <div class="row"><div class="field"><label>Class</label><select id="msg_class" onchange="loadMessages()"></select></div></div>
+        <div id="msgStudentList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const slug = params.get('school');
+let PHONE = '', PIN = '', ALLOWED_CLASSES = [];
+
+function showMsg(text, ok){
+  const el = document.getElementById('msg');
+  el.textContent = text; el.className = ok ? 'ok' : 'err';
+  setTimeout(() => { el.textContent=''; }, 4000);
+}
+
+async function login(){
+  PHONE = document.getElementById('phoneInput').value.trim();
+  PIN = document.getElementById('pinInput').value.trim();
+  try{
+    const res = await fetch('/api/teacher-login', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN }) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    ALLOWED_CLASSES = data.allowedClasses;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    document.getElementById('teacherNameHeader').textContent = `${data.staff.name} (${data.staff.role})`;
+    if(!ALLOWED_CLASSES.length){
+      showMsg('No classes assigned to you yet — ask the school office to assign classes in your Staff profile.', false);
+    }
+    const opts = ALLOWED_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
+    ['att_class','hw_class','res_class','tt_class','msg_class'].forEach(id => document.getElementById(id).innerHTML = opts);
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('att_date').value = today;
+    document.getElementById('hw_date').value = today;
+  }catch(e){
+    document.getElementById('loginMsg').textContent = e.message;
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+// ---------- ATTENDANCE ----------
+let attendanceState = {};
+async function loadAttendanceRoster(){
+  const cls = document.getElementById('att_class').value;
+  const res = await fetch(`/api/teacher-attendance?slug=${slug}&phone=${encodeURIComponent(PHONE)}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  attendanceState = {};
+  data.students.forEach(s => attendanceState[s.id] = 'present');
+  if(!data.students.length){
+    document.getElementById('att_roster').innerHTML = '<p class="dim">No students in this class.</p>';
+    document.getElementById('att_save_btn').style.display = 'none';
+    return;
+  }
+  document.getElementById('att_roster').innerHTML = data.students.map(s => `
+    <div class="row" data-row="${s.id}" style="margin-bottom:8px; align-items:center;">
+      <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
+      <div class="toggle-row" style="flex:2;">
+        <div class="toggle-btn present active" onclick="setAtt('${s.id}','present',this)">Present</div>
+        <div class="toggle-btn absent" onclick="setAtt('${s.id}','absent',this)">Absent</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('att_save_btn').style.display = 'inline-block';
+}
+function setAtt(id, status, el){
+  attendanceState[id] = status;
+  const row = el.parentElement;
+  row.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+async function saveAttendance(){
+  const cls = document.getElementById('att_class').value;
+  const date = document.getElementById('att_date').value;
+  const records = Object.entries(attendanceState).map(([student_id,status]) => ({student_id, status}));
+  const res = await fetch('/api/teacher-attendance', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, date, records }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Attendance saved (${data.saved} students), parents notified.`, true);
+}
+
+// ---------- HOMEWORK ----------
+async function sendHomework(){
+  const cls = document.getElementById('hw_class').value;
+  const date = document.getElementById('hw_date').value;
+  const text = document.getElementById('hw_text').value.trim();
+  if(!text){ showMsg('Write the homework first', false); return; }
+  const res = await fetch('/api/teacher-homework', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, date, text }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Homework sent (${data.sentTo} parents notified).`, true);
+  document.getElementById('hw_text').value = '';
+  loadHomeworkHistory();
+}
+async function loadHomeworkHistory(){
+  const cls = document.getElementById('hw_class').value;
+  if(!cls) return;
+  const res = await fetch(`/api/teacher-homework?slug=${slug}&phone=${encodeURIComponent(PHONE)}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  const box = document.getElementById('hwList');
+  if(!res.ok){ box.textContent = data.error; return; }
+  if(!data.homework.length){ box.textContent = 'No homework posted yet for this class.'; return; }
+  box.innerHTML = data.homework.map(h => `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><b>${new Date(h.date).toLocaleDateString('en-IN')}:</b> ${h.text||''}</div>`).join('');
+}
+
+// ---------- RESULTS ----------
+let resultRoster = [];
+async function loadResultRoster(){
+  const cls = document.getElementById('res_class').value;
+  const res = await fetch(`/api/teacher-results?slug=${slug}&phone=${encodeURIComponent(PHONE)}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  resultRoster = data.students;
+  document.getElementById('res_roster').innerHTML = resultRoster.map(s => `
+    <div class="row" style="margin-bottom:8px;">
+      <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
+      <input type="number" placeholder="Marks" id="marks_${s.id}" style="flex:1;">
+    </div>
+  `).join('');
+  document.getElementById('res_save_btn').style.display = resultRoster.length ? 'inline-block' : 'none';
+}
+async function saveResults(){
+  const cls = document.getElementById('res_class').value;
+  const exam_name = document.getElementById('res_exam').value;
+  const subject = document.getElementById('res_subject').value.trim();
+  const max_marks = Number(document.getElementById('res_max').value) || 100;
+  const notify = document.getElementById('res_notify').checked;
+  if(!subject){ showMsg('Enter the subject', false); return; }
+  const entries = resultRoster.map(s => ({ student_id: s.id, marks_obtained: Number(document.getElementById('marks_'+s.id).value) || 0 }));
+  const res = await fetch('/api/teacher-results', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, exam_name, subject, max_marks, entries, notify }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Marks saved (${data.saved} students).`, true);
+}
+
+// ---------- TIMETABLE ----------
+async function loadTimetableView(){
+  const cls = document.getElementById('tt_class').value;
+  const box = document.getElementById('ttView');
+  box.innerHTML = 'Loading...';
+  const res = await fetch(`/api/teacher-timetable?slug=${slug}&phone=${encodeURIComponent(PHONE)}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ box.textContent = data.error; return; }
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const byDay = {};
+  (data.slots||[]).forEach(s => { byDay[s.day_of_week] = byDay[s.day_of_week] || []; byDay[s.day_of_week].push(s); });
+  const html = days.filter(d => byDay[d]?.length).map(d => `
+    <div style="margin-bottom:10px;">
+      <b style="color:var(--gold-soft);">${d}</b>
+      ${byDay[d].sort((a,b)=>a.period_no-b.period_no).map(s => `<div class="dim">${s.time_range||''} — ${s.subject||''} ${s.teacher_name?`(${s.teacher_name})`:''}</div>`).join('')}
+    </div>
+  `).join('');
+  box.innerHTML = html || '<p class="dim">No timetable set for this class yet.</p>';
+}
+
+// ---------- MESSAGES ----------
+async function loadMessages(){
+  const cls = document.getElementById('msg_class').value;
+  const box = document.getElementById('msgStudentList');
+  box.innerHTML = 'Loading...';
+  const res = await fetch(`/api/teacher-messages?slug=${slug}&phone=${encodeURIComponent(PHONE)}&pin=${PIN}&class=${encodeURIComponent(cls)}`);
+  const data = await res.json();
+  if(!res.ok){ box.textContent = data.error; return; }
+  if(!data.students.length){ box.innerHTML = '<p class="dim">No students in this class.</p>'; return; }
+  box.innerHTML = data.students.map(s => `
+    <div style="margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:14px;">
+      <b>${s.name}</b> <span class="dim">(${s.roll_no||'-'})</span>
+      <div class="msg-thread msg-flex">
+        ${s.messages.length ? s.messages.map(m => `<div class="msg-bubble ${m.sender}">${m.text}</div>`).join('') : '<span class="dim">No messages yet.</span>'}
+      </div>
+      <div class="row">
+        <input placeholder="Reply..." id="reply_${s.id}">
+        <button class="btn-ghost btn-small" onclick="sendTeacherMessage('${s.id}')">Send</button>
+      </div>
+    </div>
+  `).join('');
+}
+async function sendTeacherMessage(studentId){
+  const cls = document.getElementById('msg_class').value;
+  const text = document.getElementById('reply_'+studentId).value.trim();
+  if(!text) return;
+  const res = await fetch('/api/teacher-messages', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, student_id: studentId, text }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  loadMessages();
+}
+</script>
+</body>
+</html>

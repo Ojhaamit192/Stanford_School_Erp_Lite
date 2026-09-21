@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
-const TABLES = ["schools", "students", "attendance", "fee_payments", "notices", "exam_results", "homework", "enquiries", "datesheets", "sms_log", "timetable_slots", "tc_records", "staff", "staff_attendance", "staff_salary_payments"];
+const TABLES = ["schools", "students", "attendance", "fee_payments", "notices", "exam_results", "homework", "enquiries", "datesheets", "sms_log", "timetable_slots", "tc_records", "staff", "staff_attendance", "staff_salary_payments", "messages", "fee_payment_claims"];
 
 function toCsv(rows) {
   if (!rows.length) return "";

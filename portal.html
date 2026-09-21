@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Lite — Student &amp; Parent Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#FF6A00">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  :root{
+    --bg:#0D0A08; --bg-panel:#1A130E; --bg-panel-2:#241A12; --line:#3D2A1A;
+    --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A;
+    --success:#5EAE7C; --danger:#E0574A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:500;}
+  .wrap{max-width:640px; margin:0 auto; padding:24px 16px 80px;}
+  header{border-bottom:1px solid var(--line); padding:18px 0; margin-bottom:20px; text-align:center;}
+  header img{height:48px; width:48px; border-radius:12px; margin-bottom:8px; object-fit:cover;}
+
+  input, select, textarea{width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:11px 13px; color:var(--text); font-size:0.95rem; font-family:'Inter',sans-serif;}
+  input:focus, select:focus, textarea:focus{border-color:var(--gold-soft); outline:none;}
+  label{font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; display:block;}
+  .field{margin-bottom:14px;}
+  .btn{background:var(--gold); color:#1a0d00; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.92rem; border:none; cursor:pointer;}
+  .btn:hover{background:var(--gold-soft);}
+  .btn-ghost{background:none; border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:8px; font-size:0.88rem; cursor:pointer;}
+  .btn-small{padding:6px 12px; font-size:0.82rem; border-radius:6px;}
+
+  .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px;}
+  .card h3{margin-bottom:12px; font-size:1rem;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .row > *{flex:1; min-width:140px;}
+
+  .login-box{max-width:360px; margin:60px auto; text-align:center;}
+  .login-box h2{margin-bottom:6px;}
+  .login-box .sub{color:var(--text-dim); font-size:0.85rem; margin-bottom:18px;}
+
+  .tabs{display:flex; gap:6px; overflow-x:auto; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .tab{padding:10px 16px; font-size:0.88rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent;}
+  .tab.active{color:var(--gold-soft); border-color:var(--gold-soft); font-weight:600;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:16px;}
+  .stat-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; text-align:center;}
+  .stat-card .num{font-family:'Fraunces',serif; font-size:1.4rem; font-weight:600; color:var(--gold-soft);}
+  .stat-card .label{color:var(--text-dim); font-size:0.72rem; margin-top:2px;}
+
+  .pill{display:inline-block; padding:3px 10px; border-radius:99px; font-size:0.78rem; font-weight:600;}
+  .pill.paid{background:rgba(94,174,122,0.15); color:var(--success);}
+  .pill.due{background:rgba(224,87,74,0.15); color:var(--danger);}
+
+  .msg-bubble{padding:8px 12px; border-radius:8px; margin-bottom:8px; font-size:0.88rem; max-width:80%;}
+  .msg-bubble.school{background:var(--bg-panel-2);}
+  .msg-bubble.parent{background:rgba(255,106,0,0.15); margin-left:auto;}
+  .msg-flex{display:flex; flex-direction:column;}
+
+  #msg{font-size:0.88rem; padding:8px 0; min-height:18px;}
+  #msg.ok{color:var(--success);} #msg.err{color:var(--danger);}
+  .dim{color:var(--text-dim); font-size:0.85rem;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2>Student &amp; Parent Login</h2>
+  <div class="sub">Use the phone number registered with the school, and your child's roll number.</div>
+  <div class="field"><input id="phoneInput" placeholder="Registered phone number" inputmode="tel"></div>
+  <div class="field"><input id="rollInput" placeholder="Roll number"></div>
+  <button class="btn" style="width:100%" onclick="login()">Login</button>
+  <p id="loginMsg" style="color:var(--danger); margin-top:10px; font-size:0.85rem;"></p>
+</div>
+
+<div id="appScreen" style="display:none;">
+  <header>
+    <img id="schoolLogo" style="display:none;">
+    <div id="schoolName" style="font-weight:600;"></div>
+    <div class="dim" id="studentBar"></div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+      <div class="tab" data-tab="homework">Homework</div>
+      <div class="tab" data-tab="exams">Exams &amp; Results</div>
+      <div class="tab" data-tab="messages">Messages</div>
+    </div>
+
+    <div id="msg"></div>
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="stat_month_att">-</div><div class="label">Attendance This Month</div></div>
+        <div class="stat-card"><div class="num" id="stat_year_att">-</div><div class="label">Attendance This Year</div></div>
+      </div>
+      <div class="card">
+        <h3>Fees</h3>
+        <div class="row" style="margin-bottom:12px;">
+          <div>Monthly Fee: <b id="fee_amount"></b></div>
+          <div style="text-align:right;"><span class="pill" id="fee_status_pill"></span></div>
+        </div>
+        <button class="btn" id="pay_btn" onclick="payNow()" style="display:none;">Pay Now Online (Card/UPI/Netbanking)</button>
+        <div id="fee_pay_msg" class="dim" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card" id="upiCard" style="display:none;">
+        <h3>Or Scan &amp; Pay via UPI</h3>
+        <div style="text-align:center; margin-bottom:12px;">
+          <img id="upiQrImg" style="max-width:220px; width:100%; border-radius:10px;">
+          <div class="dim" id="upiIdText" style="margin-top:6px;"></div>
+        </div>
+        <p class="dim" style="margin-bottom:10px;">After paying, let the school know so they can confirm it — attaching a screenshot helps them confirm faster.</p>
+        <div class="row">
+          <div class="field"><label>Amount Paid</label><input id="upi_amount" type="number"></div>
+        </div>
+        <div class="field">
+          <label>Payment Screenshot (optional)</label>
+          <input type="file" id="upi_screenshot" accept="image/*" onchange="uploadUpiScreenshot(this)">
+          <div id="upi_upload_status" class="dim" style="margin-top:4px;"></div>
+        </div>
+        <input type="hidden" id="upi_screenshot_url">
+        <button class="btn-ghost" onclick="claimUpiPayment()">I've Paid — Notify School</button>
+        <div id="upi_claim_msg" class="dim" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- HOMEWORK -->
+    <div class="panel" id="panel-homework">
+      <div class="card">
+        <h3>Recent Homework</h3>
+        <div id="homeworkList" class="dim">-</div>
+      </div>
+      <div class="card">
+        <h3>Exam Datesheet</h3>
+        <div id="datesheetList" class="dim">-</div>
+      </div>
+    </div>
+
+    <!-- EXAMS -->
+    <div class="panel" id="panel-exams">
+      <div class="card">
+        <h3>Report Cards</h3>
+        <div id="examList" class="dim">-</div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="panel" id="panel-messages">
+      <div class="card">
+        <h3>Message the School</h3>
+        <div id="msgThread" class="msg-flex" style="max-height:300px; overflow-y:auto; margin-bottom:12px;"></div>
+        <div class="row">
+          <input id="msgInput" placeholder="Type a message or complaint...">
+          <button class="btn-small btn-ghost" onclick="sendPortalMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const slug = params.get('school');
+let PHONE = '', ROLL = '', PORTAL_DATA = null;
+
+function showMsg(text, ok){
+  const el = document.getElementById('msg');
+  el.textContent = text; el.className = ok ? 'ok' : 'err';
+  setTimeout(() => { el.textContent=''; }, 4000);
+}
+
+async function login(){
+  PHONE = document.getElementById('phoneInput').value.trim();
+  ROLL = document.getElementById('rollInput').value.trim();
+  try{
+    const res = await fetch('/api/portal-login', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, roll_no: ROLL }) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    if(data.school.logo_url){ document.getElementById('schoolLogo').src = data.school.logo_url; document.getElementById('schoolLogo').style.display='inline-block'; }
+    document.getElementById('schoolName').textContent = data.school.name;
+    document.getElementById('studentBar').textContent = `${data.student.name} — ${data.student.class} • Roll ${data.student.roll_no}`;
+    loadPortalData();
+    loadPortalMessages();
+  }catch(e){
+    document.getElementById('loginMsg').textContent = e.message;
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+async function loadPortalData(){
+  const res = await fetch(`/api/portal-data?slug=${slug}&phone=${encodeURIComponent(PHONE)}&roll_no=${encodeURIComponent(ROLL)}`);
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  PORTAL_DATA = data;
+
+  document.getElementById('stat_month_att').textContent = data.attendance.monthPct === null ? '-' : data.attendance.monthPct + '%';
+  document.getElementById('stat_year_att').textContent = data.attendance.yearPct === null ? '-' : data.attendance.yearPct + '%';
+
+  document.getElementById('fee_amount').textContent = `₹${data.fees.monthlyFee}`;
+  const pill = document.getElementById('fee_status_pill');
+  pill.textContent = data.fees.paidThisMonth ? 'Paid' : 'Due';
+  pill.className = 'pill ' + (data.fees.paidThisMonth ? 'paid' : 'due');
+  document.getElementById('pay_btn').style.display = data.fees.paidThisMonth ? 'none' : 'inline-block';
+
+  if(data.school.upi_qr_url){
+    document.getElementById('upiCard').style.display = data.fees.paidThisMonth ? 'none' : 'block';
+    document.getElementById('upiQrImg').src = data.school.upi_qr_url;
+    document.getElementById('upiIdText').textContent = data.school.upi_id ? `UPI ID: ${data.school.upi_id}` : '';
+    document.getElementById('upi_amount').value = data.fees.monthlyFee;
+  }
+
+  document.getElementById('homeworkList').innerHTML = data.homework.length
+    ? data.homework.map(h => `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><b>${new Date(h.date).toLocaleDateString('en-IN')}:</b> ${h.text||''} ${h.image_url?`<br><img src="${h.image_url}" style="max-width:100%; border-radius:8px; margin-top:6px;">`:''}</div>`).join('')
+    : "No homework posted yet.";
+
+  document.getElementById('datesheetList').innerHTML = data.datesheets.length
+    ? data.datesheets.map(d => `<div style="padding:8px 0; border-bottom:1px solid var(--line);"><b>${d.exam_name}</b><br><span style="white-space:pre-wrap;">${d.text}</span></div>`).join('')
+    : "No datesheet posted yet.";
+
+  document.getElementById('examList').innerHTML = data.examNames.length
+    ? data.examNames.map(name => `<div style="padding:8px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;"><span>${name}</span><a class="btn-ghost btn-small" href="report-card.html?school=${slug}&student=${data.student.id}" target="_blank">View Report Card</a></div>`).join('')
+    : "No results published yet.";
+}
+
+// ---------- UPI QR PAYMENT (manual, confirmed by school) ----------
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadUpiScreenshot(inputEl){
+  const file = inputEl.files[0];
+  const statusEl = document.getElementById('upi_upload_status');
+  if(!file) return;
+  if(file.size > 4*1024*1024){ statusEl.textContent = 'Screenshot is larger than 4MB.'; return; }
+  statusEl.textContent = 'Uploading...';
+  try{
+    const dataBase64 = await fileToBase64(file);
+    const res = await fetch('/api/upload', { method:'POST', body: JSON.stringify({
+      slug, phone: PHONE, roll_no: ROLL, filename: file.name, contentType: file.type, dataBase64
+    })});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    document.getElementById('upi_screenshot_url').value = data.url;
+    statusEl.textContent = 'Uploaded ✓';
+  }catch(e){
+    statusEl.textContent = 'Upload failed: ' + e.message;
+  }
+}
+async function claimUpiPayment(){
+  const amount = Number(document.getElementById('upi_amount').value) || 0;
+  const screenshot_url = document.getElementById('upi_screenshot_url').value || null;
+  const claimMsg = document.getElementById('upi_claim_msg');
+  if(!amount){ claimMsg.textContent = 'Enter the amount you paid.'; return; }
+  const res = await fetch('/api/fee-claim', { method:'POST', body: JSON.stringify({
+    slug, phone: PHONE, roll_no: ROLL, amount, month: PORTAL_DATA.fees.thisMonthKey, screenshot_url
+  })});
+  const data = await res.json();
+  if(!res.ok){ claimMsg.textContent = data.error; return; }
+  claimMsg.textContent = "Thanks — the school has been notified and will confirm your payment shortly.";
+}
+
+async function payNow(){
+  const payMsg = document.getElementById('fee_pay_msg');
+  payMsg.textContent = 'Starting payment...';
+  try{
+    const res = await fetch('/api/create-payment-order', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, roll_no: ROLL, amount: PORTAL_DATA.fees.monthlyFee, month: PORTAL_DATA.fees.thisMonthKey }) });
+    const order = await res.json();
+    if(!res.ok) throw new Error(order.error);
+
+    const rzp = new Razorpay({
+      key: order.key_id,
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.order_id,
+      name: PORTAL_DATA.school.name,
+      description: `Fee for ${PORTAL_DATA.fees.thisMonthKey}`,
+      handler: async function(response){
+        payMsg.textContent = 'Verifying payment...';
+        const verifyRes = await fetch('/api/verify-payment', { method:'POST', body: JSON.stringify({
+          slug, phone: PHONE, roll_no: ROLL, amount: PORTAL_DATA.fees.monthlyFee, month: PORTAL_DATA.fees.thisMonthKey,
+          razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature
+        })});
+        const verifyData = await verifyRes.json();
+        if(!verifyRes.ok){ payMsg.textContent = verifyData.error; return; }
+        payMsg.textContent = 'Payment successful! Receipt sent by SMS.';
+        loadPortalData();
+      },
+      theme: { color: '#FF6A00' },
+    });
+    rzp.open();
+    payMsg.textContent = '';
+  }catch(e){
+    payMsg.textContent = e.message;
+  }
+}
+
+async function loadPortalMessages(){
+  const res = await fetch(`/api/portal-messages?slug=${slug}&phone=${encodeURIComponent(PHONE)}&roll_no=${encodeURIComponent(ROLL)}`);
+  const data = await res.json();
+  const box = document.getElementById('msgThread');
+  if(!res.ok){ box.textContent = data.error; return; }
+  box.innerHTML = data.messages.length
+    ? data.messages.map(m => `<div class="msg-bubble ${m.sender}">${m.text}</div>`).join('')
+    : '<span class="dim">No messages yet — send one below if you have a question for the school.</span>';
+  box.scrollTop = box.scrollHeight;
+}
+async function sendPortalMessage(){
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const res = await fetch('/api/portal-messages', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, roll_no: ROLL, text }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  input.value = '';
+  loadPortalMessages();
+}
+</script>
+</body>
+</html>

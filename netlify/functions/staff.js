@@ -24,7 +24,7 @@ exports.handler = async (event) => {
       const school = await verifyPin(supabase, body.slug, body.pin);
 
       if (body.action === "update") {
-        const { id, name, role, phone, monthly_salary, joining_date } = body;
+        const { id, name, role, phone, monthly_salary, joining_date, login_pin, assigned_classes, upi_id } = body;
         if (!id) return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Staff id is required" }) };
         const patch = {};
         if (name !== undefined) patch.name = name;
@@ -32,12 +32,15 @@ exports.handler = async (event) => {
         if (phone !== undefined) patch.phone = phone || null;
         if (monthly_salary !== undefined) patch.monthly_salary = monthly_salary || 0;
         if (joining_date !== undefined) patch.joining_date = joining_date || null;
+        if (login_pin !== undefined) patch.login_pin = login_pin || null;
+        if (assigned_classes !== undefined) patch.assigned_classes = assigned_classes || null;
+        if (upi_id !== undefined) patch.upi_id = upi_id || null;
         const { data, error } = await supabase.from("staff").update(patch).eq("id", id).eq("school_id", school.id).select().single();
         if (error) throw error;
         return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ staff: data }) };
       }
 
-      const { name, role, phone, monthly_salary, joining_date } = body;
+      const { name, role, phone, monthly_salary, joining_date, login_pin, assigned_classes, upi_id } = body;
       if (!name) return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Name is required" }) };
       const { data, error } = await supabase
         .from("staff")
@@ -48,6 +51,9 @@ exports.handler = async (event) => {
           phone: phone || null,
           monthly_salary: monthly_salary || 0,
           joining_date: joining_date || null,
+          login_pin: login_pin || null,
+          assigned_classes: assigned_classes || null,
+          upi_id: upi_id || null,
         })
         .select()
         .single();

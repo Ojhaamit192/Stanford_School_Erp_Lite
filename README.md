@@ -20,15 +20,22 @@ Muzaffarpur** (PIN: `1234`).
   `message-log.js`, `bunk-alert.js`, `monthly-summary.js`,
   `birthday-wish.js`, `fee-reminder.js`, `super-admin.js`,
   `timetable.js`, `tc.js`, `staff.js`, `staff-attendance.js`,
-  `staff-salary.js`. All follow `/api/*` (scheduled ones don't).
+  `staff-salary.js`, `teacher-login.js`, `teacher-attendance.js`,
+  `teacher-homework.js`, `teacher-results.js`, `teacher-timetable.js`,
+  `teacher-messages.js`, `portal-login.js`, `portal-data.js`,
+  `portal-messages.js`, `create-payment-order.js`, `verify-payment.js`,
+  `fee-claim.js`, `payout-salary.js`.
+  All follow `/api/*` (scheduled ones don't).
 - `supabase/schema.sql` — tables: `schools`, `students`, `attendance`,
   `fee_payments`, `notices`, `exam_results`, `homework`, `enquiries`,
   `datesheets`, `sms_log`, `timetable_slots`, `tc_records`, `staff`,
-  `staff_attendance`, `staff_salary_payments`.
-- `supabase/migration_2_trust_and_growth_features.sql`,
-  `supabase/migration_3_branding_and_contact.sql`, and
-  `supabase/migration_4_timetable_tc_staff.sql` — run these once, in
-  order, if you deployed before those updates.
+  `staff_attendance`, `staff_salary_payments`, `messages`,
+  `fee_payment_claims`.
+- `supabase/migration_2_trust_and_growth_features.sql` through
+  `supabase/migration_6_upi_payments.sql` — run these once, in order,
+  if you deployed before those updates.
+- `teacher.html` — Teacher Portal (see the panels table below).
+- `portal.html` — Student/Parent Portal (see the panels table below).
 - `report-card.html` — public, no-login report card view, opened via the
   SMS link sent when results are published for a student
   (`report-card.html?school=<slug>&student=<id>`).
@@ -40,7 +47,114 @@ Muzaffarpur** (PIN: `1234`).
   (`homework.html?school=<slug>&class=<class>`) so parents can see the
   class's homework text/photo without installing anything.
 
-## A note on "WhatsApp"
+## The four login panels
+
+This update adds three new front-ends on top of the original Super Admin
+panel, matching the role-based structure you asked for. All four share
+the same Supabase backend and Tejvix look — they're separate pages, not
+separate apps to deploy.
+
+| Panel | File | Login | Who it's for |
+|---|---|---|---|
+| Super Admin | `admin.html` | School PIN | Principal/management — everything: fees, staff salary, admissions, reports, notices (unchanged from before, just relabelled) |
+| Teacher | `teacher.html` | Phone number + a PIN you set per teacher | Daily attendance, marks entry, homework, timetable (read-only), replying to parent messages — scoped to that teacher's **assigned classes** only |
+| Student/Parent | `portal.html` | Registered phone number + the student's roll number | Attendance %, homework, exam datesheet, report card downloads, online fee payment, messaging the school |
+| Super Admin (multi-school) | `super-admin.html` | Master password | Combined view across every school (unchanged, see step 10) |
+
+A student and their parent share one login and one view — in practice a
+parent's dashboard *is* the child's dashboard, so this is one portal
+rather than two, to avoid managing a second password per family for
+data that's identical either way.
+
+**Setting up a teacher's portal login:** in the Super Admin's Staff tab,
+when adding or editing a staff member, fill in **Teacher Portal Login
+PIN** and **Assigned Classes** (comma-separated, e.g. `Class 6, Class 7`).
+Leave both blank for staff who don't need portal access (an accountant,
+a peon). The Staff list shows "Portal ON" once a PIN is set.
+
+**Setting up a parent's portal login:** nothing to set up — it already
+works with the phone number and roll number already on the student's
+record from the Students tab.
+
+## Online fee payment (Razorpay)
+
+`portal.html`'s "Pay Now Online" button needs a Razorpay account —
+signup is free, and India's UPI/cards/netbanking all work through it.
+
+1. Create an account at [razorpay.com](https://razorpay.com) and complete
+   KYC (needed before you can accept live payments — test mode works
+   immediately without it).
+2. Dashboard → **Settings → API Keys** → generate a Key ID and Key Secret.
+3. Add both as Netlify environment variables: `RAZORPAY_KEY_ID`,
+   `RAZORPAY_KEY_SECRET`.
+
+Until these are set, the Pay Now button shows "Online payment is not set
+up yet — please pay by cash at the school for now" instead of failing
+silently. Test mode lets you try the whole flow with Razorpay's test
+card numbers before going live.
+
+## UPI QR payment (works today, no Razorpay account needed)
+
+Alongside the Razorpay button, the portal shows a **"Scan & Pay via
+UPI"** card with a QR code and UPI ID you provide — the parent scans it
+in any UPI app (GPay, PhonePe, etc.), pays directly to that account,
+then taps "I've Paid" (optionally attaching a screenshot). This creates
+a **pending claim**, not an automatic payment — a static QR has no way
+to confirm a payment happened on its own, so the Super Admin checks
+their bank/UPI app and confirms or rejects the claim from the Fees
+tab's **Pending UPI Payment Claims** section. Confirming records the
+payment and sends the parent a receipt, exactly like a cash payment
+recorded manually.
+
+**Setup:** in Supabase, set `schools.upi_id` (e.g. `name@bank`) and
+`schools.upi_qr_url` (a QR code image — either upload one to Supabase
+Storage and use its public URL, or add it as a static file under
+`assets/` like `stanford-logo.png`) for the school. Stanford Prep's are
+already set from the QR you shared — see migration_6 below.
+
+**Worth knowing:** the account currently on file is a personal UPI ID,
+not a school bank account — fine for testing collection end-to-end, but
+worth swapping for the school's own account before real fees flow
+through it.
+
+## Staff salary payouts (RazorpayX — optional, advanced)
+
+The Staff tab's Salary section can send a real UPI payout instead of
+just recording a manual entry, via **RazorpayX** — a separate product
+from the Razorpay Checkout used for fee collection, meant for sending
+money out rather than collecting it.
+
+This needs more setup than anything else in this project:
+
+1. Apply for a RazorpayX current account at
+   [razorpay.com/x](https://razorpay.com/x) — this goes through one of
+   Razorpay's partner banks (RBL or ICICI) and needs full business KYC
+   (registered business, PAN, address proof) — it is not the same
+   signup as the regular Razorpay account above, and takes real
+   verification time, not instant activation.
+2. Once approved, fund the account (payouts are debited from this
+   balance — RazorpayX does not extend credit).
+3. Netlify env vars: `RAZORPAYX_KEY_ID`, `RAZORPAYX_KEY_SECRET` (the
+   function falls back to `RAZORPAY_KEY_ID`/`SECRET` if a merchant has
+   both products on one key set — check your RazorpayX dashboard),
+   and `RAZORPAYX_ACCOUNT_NUMBER` (the RazorpayX virtual account number
+   payouts are sent from).
+4. Add each teacher's **UPI ID** in the Staff tab (new field) — without
+   one, "Pay via UPI" doesn't show for that staff member and "Record"
+   (manual entry) is the only option, exactly as before.
+
+Until this is set up, the salary flow works exactly as it did before —
+"Record" stays available for every staff member regardless.
+
+## Messaging (parent ↔ teacher)
+
+This is asynchronous — a message board per student, not a live chat with
+typing indicators — which keeps it reliable on weak connections and
+needs nothing beyond what's already in the stack. A parent posts from
+`portal.html`; the assigned teacher sees and replies from `teacher.html`
+under a "Messages" tab, one thread per student in their class.
+
+
 
 True WhatsApp Business API messages need Meta's business approval and
 pre-approved message templates — that takes days/weeks and has a per-message
@@ -50,6 +164,64 @@ Every "parent update" in the app (attendance, fee receipt, reminder, notice,
 result) goes out as SMS right now. Once you're ready, swapping `_sms.js` for
 a WhatsApp Business API call is a contained change — the rest of the app
 doesn't need to know which channel it went out on.
+
+## Testing with mock data (before real students/staff are ready)
+
+`supabase/seed_mock_data.sql` adds 8 fake students (across Nursery, LKG,
+Class 6, 7, 8), 2 fake teachers with Teacher Portal logins, some
+attendance/fee history, and 2 fake enquiries — all using obviously-fake
+phone numbers (`999990XXXX`), so it can never collide with a real
+parent or staff number.
+
+**Before running it**, set `MOCK_MODE=true` in Netlify's environment
+variables and redeploy. This forces every SMS the app would send —
+attendance, fees, homework, everything — to be logged instead of
+actually sent, even if a real Fast2SMS key is already configured. Every
+one of those logged messages is visible in the Super Admin's **Message
+Log** tab with a "mock" status pill, so you can see exactly what would
+have gone out to which number.
+
+Run `supabase/seed_mock_data.sql` once in the SQL Editor (safe to
+re-run — it clears its own previous rows first). Test logins it creates,
+each with its own distinct PIN so panels are never confused with each other:
+
+| Panel | Login |
+|---|---|
+| Super Admin | PIN `1234` |
+| Teacher — Sunita Devi (Class 6, 7) | Phone `9999900101`, PIN `1111` |
+| Teacher — Rakesh Thakur (Class 8, Nursery, LKG) | Phone `9999900102`, PIN `2222` |
+| Super Admin (multi-school) | `SUPER_ADMIN_PASSWORD` you set — see step 10 |
+
+Student/Parent login is phone + roll number (no separate PIN, by design —
+see "The four login panels" above for why one login covers both). All 8
+mock students:
+
+| Student | Class | Roll | Login (Phone / Roll) |
+|---|---|---|---|
+| Aarav Kumar | Class 6 | 1 | `9999900001` / `1` |
+| Priya Singh | Class 6 | 2 | `9999900002` / `2` |
+| Rohan Verma | Class 7 | 1 | `9999900003` / `1` |
+| Ananya Gupta | Class 7 | 2 | `9999900004` / `2` |
+| Karan Mehta | Class 8 | 1 | `9999900005` / `1` |
+| Diya Sharma | Class 8 | 2 | `9999900006` / `2` |
+| Aditya Yadav | Nursery | 1 | `9999900007` / `1` |
+| Ishita Jha | LKG | 1 | `9999900008` / `1` |
+
+Want the Super Admin PIN changed from the default `1234`? Run in the SQL
+Editor:
+
+```sql
+update schools set admin_pin = '5678' where slug = 'stanford-prep';
+```
+
+(swap `5678` for whatever you'd rather use).
+
+One mock student (Karan Mehta, roll 1, Class 8) is already marked absent
+3 days running, so Bunk Alert has something to fire on the next run.
+
+**Going live:** once real students and staff are added, run
+`supabase/remove_mock_data.sql` to delete every mock row, and set
+`MOCK_MODE=false` (or remove the variable) so real SMS goes out again.
 
 ## 1. Set up Supabase
 
@@ -88,6 +260,13 @@ Netlify → **Site settings → Environment variables**:
 | `SUPABASE_URL` | from Supabase Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | the service_role key |
 | `FAST2SMS_API_KEY` | from Fast2SMS Dev API page |
+| `RAZORPAY_KEY_ID` | optional — only for online fee payment, see below |
+| `RAZORPAY_KEY_SECRET` | optional — only for online fee payment, see below |
+| `RAZORPAYX_KEY_ID` | optional — only for staff salary UPI payouts, see below |
+| `RAZORPAYX_KEY_SECRET` | optional — only for staff salary UPI payouts, see below |
+| `RAZORPAYX_ACCOUNT_NUMBER` | optional — only for staff salary UPI payouts, see below |
+| `MOCK_MODE` | set to `true` while testing with mock data (see below) — blocks all real SMS |
+| `SUPER_ADMIN_PASSWORD` | for `super-admin.html`, see step 10 |
 
 Redeploy after adding these. Without them, everything still runs — SMS
 just logs as `[DEV MODE - SMS not sent]` and DB calls fail until Supabase
@@ -159,6 +338,11 @@ safe to run more than once):
    address, phone numbers, map link, and logo.
 3. `supabase/migration_4_timetable_tc_staff.sql` — adds `timetable_slots`,
    `tc_records`, `staff`, `staff_attendance`, `staff_salary_payments`.
+4. `supabase/migration_5_teacher_parent_portals.sql` — adds
+   `staff.login_pin`, `staff.assigned_classes`, and the `messages` table.
+5. `supabase/migration_6_upi_payments.sql` — adds `schools.upi_id`,
+   `schools.upi_qr_url`, `staff.upi_id`, the `fee_payment_claims` table,
+   and fills in Stanford Prep's UPI details.
 
 ## 10. Super Admin (only if you run more than one school yourself)
 
@@ -185,6 +369,16 @@ tables + functions) — same codebase, different feature flags per school
 row if you want to gate features later.
 
 ## What's built right now (matches what you pitched on WhatsApp)
+
+- **Four login panels** — Super Admin, Teacher, Student/Parent, and
+  multi-school Super Admin — see "The four login panels" above for the
+  full breakdown.
+- **Father's Name / Mother's Name** — both fields now appear consistently
+  wherever a student's name does: the Students tab, Excel export, and the
+  Transfer Certificate.
+- **One enquiry per phone per day** — the Admission Enquiry form (and its
+  WhatsApp button) won't create a duplicate record or re-SMS the owner if
+  the same number submits again on the same day.
 
 - **Attendance** — teacher marks Present/Absent per class per day; parent
   gets an SMS immediately; a monthly register (CSV, opens fine in Excel,

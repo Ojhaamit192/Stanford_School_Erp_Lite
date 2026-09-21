@@ -13,9 +13,29 @@ exports.handler = async (event) => {
   const supabase = getSupabase();
 
   try {
-    // { slug, pin, filename, contentType, dataBase64 }
+    // { slug, pin, filename, contentType, dataBase64 } for staff/admin uploads (homework photo, ID card photo, etc.)
+    // OR { slug, phone, roll_no, filename, contentType, dataBase64 } for a parent uploading a UPI payment screenshot.
     const body = JSON.parse(event.body || "{}");
-    const school = await verifyPin(supabase, body.slug, body.pin);
+    let school;
+    if (body.pin) {
+      school = await verifyPin(supabase, body.slug, body.pin);
+    } else if (body.phone && body.roll_no) {
+      const { data: schoolRow, error: schoolErr } = await supabase.from("schools").select("*").eq("slug", body.slug).single();
+      if (schoolErr || !schoolRow) throw new Error("School not found");
+      const { data: student, error: stuErr } = await supabase
+        .from("students")
+        .select("id")
+        .eq("school_id", schoolRow.id)
+        .eq("parent_phone", body.phone)
+        .eq("roll_no", body.roll_no)
+        .eq("active", true)
+        .single();
+      if (stuErr || !student) throw new Error("Student not found");
+      school = schoolRow;
+    } else {
+      throw new Error("Not authorized");
+    }
+
     const { filename, contentType, dataBase64 } = body;
     if (!dataBase64 || !contentType) {
       return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: "Photo data missing" }) };

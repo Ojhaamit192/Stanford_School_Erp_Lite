@@ -9,17 +9,25 @@
  * If FAST2SMS_API_KEY isn't set yet, this just logs to the function log
  * instead of failing — handy for testing the app before SMS is configured.
  *
+ * Set MOCK_MODE=true in your environment to force this behavior even when
+ * FAST2SMS_API_KEY IS set — use this while testing with dummy/mock data
+ * (fake phone numbers) so nothing ever gets sent to a real number by
+ * accident. Remove or set MOCK_MODE=false once you switch to real
+ * student/staff data.
+ *
  * `logCtx` (optional): { supabase, schoolId } — when given, every attempt
- * (sent or failed, real or dev-mode) is written to the sms_log table so the
- * Message Log tab in the admin panel has a full history.
+ * (sent, failed, or mock) is written to the sms_log table so the
+ * Message Log tab in the admin panel has a full history — this is also
+ * where mock-mode messages show up, since nothing actually goes out.
  */
 async function sendSms(to, body, logCtx) {
   const apiKey = process.env.FAST2SMS_API_KEY;
+  const mockMode = String(process.env.MOCK_MODE).toLowerCase() === "true";
   let status = "sent";
 
-  if (!apiKey) {
-    console.log(`[DEV MODE - SMS not sent] To: ${to} | ${body}`);
-    status = "dev_mode";
+  if (!apiKey || mockMode) {
+    console.log(`[${mockMode ? "MOCK MODE" : "DEV MODE"} - SMS not sent] To: ${to} | ${body}`);
+    status = "mock";
     await logMessage(logCtx, to, body, status);
     return;
   }

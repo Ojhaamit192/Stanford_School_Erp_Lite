@@ -14,7 +14,7 @@ exports.handler = async (event) => {
 
       const { data: staff, error: sErr } = await supabase
         .from("staff")
-        .select("id, name, role, monthly_salary")
+        .select("id, name, role, monthly_salary, upi_id")
         .eq("school_id", school.id)
         .eq("active", true);
       if (sErr) throw sErr;

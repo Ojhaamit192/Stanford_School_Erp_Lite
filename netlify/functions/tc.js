@@ -12,7 +12,7 @@ exports.handler = async (event) => {
       const school = await verifyPin(supabase, slug, pin);
       const { data, error } = await supabase
         .from("tc_records")
-        .select("*, students(name, roll_no, class, father_name, dob, parent_phone)")
+        .select("*, students(name, roll_no, class, father_name, mother_name, dob, parent_phone)")
         .eq("school_id", school.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
           conduct: conduct || "Good",
           remarks: remarks || null,
         })
-        .select("*, students(name, roll_no, class, father_name, dob, parent_phone)")
+        .select("*, students(name, roll_no, class, father_name, mother_name, dob, parent_phone)")
         .single();
       if (insErr) throw insErr;
 

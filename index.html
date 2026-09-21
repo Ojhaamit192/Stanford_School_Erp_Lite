@@ -77,7 +77,9 @@ async function loadSchools(){
         ${s.logo_url ? `<img class="school-logo" src="${s.logo_url}" alt="${s.name}">` : ''}
         <h3>${s.name}</h3>
         <p>${s.address || ''}</p>
-        <a class="btn" href="admin.html?school=${encodeURIComponent(s.slug)}">Open Staff Panel</a>
+        <a class="btn" href="admin.html?school=${encodeURIComponent(s.slug)}">Super Admin Login</a>
+        <a class="btn-ghost" href="teacher.html?school=${encodeURIComponent(s.slug)}">Teacher Login</a>
+        <a class="btn-ghost" href="portal.html?school=${encodeURIComponent(s.slug)}">Student/Parent Login</a>
         <button class="btn-ghost" onclick="toggleEnquiry('${s.slug}')">Admission Enquiry</button>
         <div class="enquiry-form" id="enq-${s.slug}">
           <input id="enq-name-${s.slug}" placeholder="Child's name">

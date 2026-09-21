@@ -47,7 +47,7 @@ exports.handler = async (event) => {
       }
 
       // Bulk import from the Excel upload in the Students tab.
-      // { action: 'bulk', rows: [{ name, class, roll_no, father_name, parent_phone, monthly_fee, dob }] }
+      // { action: 'bulk', rows: [{ name, class, roll_no, father_name, mother_name, parent_phone, monthly_fee, dob }] }
       if (body.action === "bulk") {
         const rows = body.rows || [];
         const toInsert = rows
@@ -58,6 +58,7 @@ exports.handler = async (event) => {
             class: String(r.class).trim(),
             roll_no: r.roll_no ? String(r.roll_no).trim() : null,
             father_name: r.father_name ? String(r.father_name).trim() : null,
+            mother_name: r.mother_name ? String(r.mother_name).trim() : null,
             parent_phone: String(r.parent_phone).trim(),
             monthly_fee: Number(r.monthly_fee) || 0,
             dob: r.dob || null,

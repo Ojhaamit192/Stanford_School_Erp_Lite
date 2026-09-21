@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>School Lite — Staff Panel</title>
+<title>School Lite — Super Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -84,7 +84,7 @@
 
 <div id="loginScreen" class="login-box">
   <img src="assets/tejvix-logo.png" alt="Tejvix" style="height:56px; width:56px; border-radius:12px; margin-bottom:14px;">
-  <h2>Staff Login</h2>
+  <h2>Super Admin Login</h2>
   <p class="dim" id="loginSchoolName" style="margin-bottom:18px;"></p>
   <div class="field"><input id="pinInput" placeholder="Enter PIN" type="password" inputmode="numeric"></div>
   <button class="btn" style="width:100%" onclick="login()">Login</button>
@@ -173,7 +173,7 @@
         </div>
         <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th></th><th>Name</th><th>Father</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Name</th><th>Father's Name</th><th>Mother's Name</th><th>Class</th><th>Roll</th><th>Parent Phone</th><th>Fee</th><th></th></tr></thead>
           <tbody id="studentTable"></tbody>
         </table>
         </div>
@@ -192,7 +192,8 @@
             <div class="field"><label>Roll No</label><input id="s_roll"></div>
           </div>
           <div class="row">
-            <div class="field"><label>Father Name</label><input id="s_father"></div>
+            <div class="field"><label>Father's Name</label><input id="s_father"></div>
+            <div class="field"><label>Mother's Name</label><input id="s_mother"></div>
             <div class="field"><label>Parent WhatsApp/Phone</label><input id="s_phone" placeholder="9876543210"></div>
             <div class="field"><label>Monthly Fee (₹)</label><input id="s_fee" type="number" value="500"></div>
           </div>
@@ -324,6 +325,15 @@
         </table>
         </div>
       </div>
+
+      <div class="card">
+        <div class="row" style="align-items:center; margin-bottom:10px;">
+          <h3>Pending UPI Payment Claims</h3>
+          <div style="text-align:right;"><button class="btn-ghost btn-small" onclick="loadUpiClaims()">Refresh</button></div>
+        </div>
+        <p class="dim" style="margin-bottom:10px;">Parents can pay via the UPI QR shown in their portal and tell you here — check your bank/UPI app before confirming.</p>
+        <div id="upiClaimsList" class="dim">Click Refresh to load.</div>
+      </div>
     </div>
 
     <!-- STAFF -->
@@ -334,7 +344,7 @@
         </div>
         <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th>Portal Access</th><th></th></tr></thead>
           <tbody id="staffTable"></tbody>
         </table>
         </div>
@@ -354,6 +364,12 @@
           <div class="field"><label>Monthly Salary (₹)</label><input id="st_salary" type="number" value="10000"></div>
           <div class="field"><label>Joining Date</label><input id="st_joining" type="date"></div>
         </div>
+        <div class="row">
+          <div class="field"><label>Teacher Portal Login PIN</label><input id="st_login_pin" placeholder="e.g. 4-digit PIN, only if they need portal login"></div>
+          <div class="field"><label>Assigned Classes (for Teacher Portal)</label><input id="st_assigned_classes" placeholder="e.g. Class 6, Class 7"></div>
+        </div>
+        <p class="dim" style="margin-bottom:10px;">Set a PIN and assigned classes only for staff who should log into the separate <a href="teacher.html" target="_blank" style="color:var(--gold-soft);">Teacher Portal</a> (teacher.html) — they'll log in there with their phone number and this PIN, and only see the classes listed here.</p>
+        <div class="field"><label>UPI ID (optional, for salary payout)</label><input id="st_upi_id" placeholder="e.g. name@ybl"></div>
         <button class="btn" id="st_submit_btn" onclick="addStaff()">Add Staff</button>
         <button class="btn-ghost" id="st_cancel_btn" onclick="cancelEditStaff()" style="display:none;">Cancel</button>
       </div>
@@ -672,7 +688,7 @@ function renderStudents(){
   const filterClass = document.getElementById('stu_filter_class').value || 'all';
   const rows = filterClass === 'all' ? STUDENTS : STUDENTS.filter(s => s.class === filterClass);
   if(!rows.length){
-    document.getElementById('studentTable').innerHTML = '<tr><td colspan="8" class="dim">No students yet — add one below or bulk-import from Excel.</td></tr>';
+    document.getElementById('studentTable').innerHTML = '<tr><td colspan="9" class="dim">No students yet — add one below or bulk-import from Excel.</td></tr>';
     return;
   }
   document.getElementById('studentTable').innerHTML = rows.map(s => `
@@ -680,6 +696,7 @@ function renderStudents(){
       <td>${s.photo_url ? `<img src="${s.photo_url}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;">` : ''}</td>
       <td>${s.name}</td>
       <td>${s.father_name||'-'}</td>
+      <td>${s.mother_name||'-'}</td>
       <td>${s.class}</td>
       <td>${s.roll_no||'-'}</td>
       <td>${s.parent_phone}</td>
@@ -697,6 +714,7 @@ function editStudent(id){
   document.getElementById('s_class').value = s.class || '';
   document.getElementById('s_roll').value = s.roll_no || '';
   document.getElementById('s_father').value = s.father_name || '';
+  document.getElementById('s_mother').value = s.mother_name || '';
   document.getElementById('s_phone').value = s.parent_phone || '';
   document.getElementById('s_fee').value = s.monthly_fee || 0;
   document.getElementById('s_dob').value = s.dob || '';
@@ -712,7 +730,7 @@ function editStudent(id){
 
 function cancelEditStudent(){
   document.getElementById('s_edit_id').value = '';
-  ['s_name','s_class','s_roll','s_father','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
+  ['s_name','s_class','s_roll','s_father','s_mother','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
   document.getElementById('s_fee').value = 500;
   document.getElementById('s_photo_status').textContent='';
   document.getElementById('addStudentTitle').textContent = 'Add New Student';
@@ -728,6 +746,7 @@ async function addStudent(){
     class: document.getElementById('s_class').value.trim(),
     roll_no: document.getElementById('s_roll').value.trim(),
     father_name: document.getElementById('s_father').value.trim(),
+    mother_name: document.getElementById('s_mother').value.trim(),
     parent_phone: document.getElementById('s_phone').value.trim(),
     monthly_fee: Number(document.getElementById('s_fee').value) || 0,
     dob: document.getElementById('s_dob').value || null,
@@ -754,7 +773,7 @@ async function addStudent(){
   if(!res.ok){ showMsg(data.error, false); return; }
   STUDENTS.push(data.student);
   renderStudents(); populateClassDropdowns();
-  ['s_name','s_class','s_roll','s_father','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
+  ['s_name','s_class','s_roll','s_father','s_mother','s_phone','s_dob','s_photo_url'].forEach(id => document.getElementById(id).value='');
   document.getElementById('s_photo_status').textContent='';
   showMsg('Student added!', true);
 }
@@ -792,7 +811,7 @@ function exportStudentsExcel(){
   const filterClass = document.getElementById('stu_filter_class').value || 'all';
   const rows = filterClass === 'all' ? STUDENTS : STUDENTS.filter(s => s.class === filterClass);
   const sheetData = rows.map(s => ({
-    Name: s.name, Father: s.father_name||'', Class: s.class, Roll: s.roll_no||'',
+    Name: s.name, "Father's Name": s.father_name||'', "Mother's Name": s.mother_name||'', Class: s.class, Roll: s.roll_no||'',
     'Parent Phone': s.parent_phone, 'Monthly Fee': s.monthly_fee||0, DOB: s.dob||''
   }));
   const ws = XLSX.utils.json_to_sheet(sheetData);
@@ -976,6 +995,43 @@ function exportFeesPdf(){
   doc.save(`fees-${filterClass}-${month}.pdf`);
 }
 
+// ---------- UPI PAYMENT CLAIMS ----------
+async function loadUpiClaims(){
+  const box = document.getElementById('upiClaimsList');
+  box.textContent = 'Loading...';
+  const res = await fetch(`/api/fee-claim?slug=${slug}&pin=${PIN}&status=pending`);
+  const data = await res.json();
+  if(!res.ok){ box.textContent = data.error; return; }
+  if(!data.claims.length){ box.textContent = 'No pending UPI claims right now.'; return; }
+  box.innerHTML = data.claims.map(c => `
+    <div style="padding:10px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div>
+        <b>${c.students?.name || 'Unknown'}</b> <span class="dim">(${c.students?.class || ''}, Roll ${c.students?.roll_no || '-'})</span><br>
+        <span class="dim">₹${c.amount} for ${c.month} — claimed ${new Date(c.created_at).toLocaleDateString('en-IN')}</span>
+        ${c.screenshot_url ? `<br><a href="${c.screenshot_url}" target="_blank" class="dim">View screenshot</a>` : ''}
+      </div>
+      <div>
+        <button class="btn-ghost btn-small" onclick="confirmUpiClaim('${c.id}')">Confirm</button>
+        <button class="btn-ghost btn-small" onclick="rejectUpiClaim('${c.id}')">Reject</button>
+      </div>
+    </div>
+  `).join('');
+}
+async function confirmUpiClaim(id){
+  const res = await fetch('/api/fee-claim', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'confirm', claim_id: id }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Payment confirmed, receipt sent.', true);
+  loadUpiClaims();
+}
+async function rejectUpiClaim(id){
+  const res = await fetch('/api/fee-claim', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'reject', claim_id: id }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Claim rejected.', true);
+  loadUpiClaims();
+}
+
 // ---------- NOTICES ----------
 async function sendNotice(){
   const className = document.getElementById('notice_class').value;
@@ -1157,7 +1213,7 @@ async function loadMessageLog(){
       <td>${new Date(m.created_at).toLocaleString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</td>
       <td>${m.phone}</td>
       <td style="max-width:320px; white-space:pre-wrap;">${m.message}</td>
-      <td><span class="pill ${m.status==='sent'?'paid':(m.status==='dev_mode'?'warn':'due')}">${m.status}</span></td>
+      <td><span class="pill ${m.status==='sent'?'paid':(m.status==='mock'?'warn':'due')}">${m.status}</span></td>
     </tr>
   `).join('');
 }
@@ -1391,6 +1447,7 @@ async function issueTc(){
     [`TC Number`, r.tc_number],
     [`Student Name`, s.name],
     [`Father's Name`, s.father_name || '-'],
+    [`Mother's Name`, s.mother_name || '-'],
     [`Date of Birth`, s.dob || '-'],
     [`Class`, s.class],
     [`Roll No.`, s.roll_no || '-'],
@@ -1428,10 +1485,11 @@ async function loadStaff(){
 }
 function renderStaffTable(){
   document.getElementById('staffCount').textContent = STAFF.length;
-  if(!STAFF.length){ document.getElementById('staffTable').innerHTML = '<tr><td colspan="5" class="dim">No staff added yet.</td></tr>'; return; }
+  if(!STAFF.length){ document.getElementById('staffTable').innerHTML = '<tr><td colspan="6" class="dim">No staff added yet.</td></tr>'; return; }
   document.getElementById('staffTable').innerHTML = STAFF.map(s => `
     <tr>
       <td>${s.name}</td><td>${s.role}</td><td>${s.phone||'-'}</td><td>₹${s.monthly_salary||0}</td>
+      <td>${s.login_pin ? `<span class="pill paid">Portal ON</span>` : `<span class="dim">No portal login</span>`}</td>
       <td><button class="btn-ghost btn-small" onclick="editStaff('${s.id}')">Edit</button></td>
     </tr>
   `).join('');
@@ -1445,13 +1503,16 @@ function editStaff(id){
   document.getElementById('st_phone').value = s.phone || '';
   document.getElementById('st_salary').value = s.monthly_salary || 0;
   document.getElementById('st_joining').value = s.joining_date || '';
+  document.getElementById('st_login_pin').value = s.login_pin || '';
+  document.getElementById('st_assigned_classes').value = s.assigned_classes || '';
+  document.getElementById('st_upi_id').value = s.upi_id || '';
   document.getElementById('addStaffTitle').textContent = `Edit ${s.name}`;
   document.getElementById('st_submit_btn').textContent = 'Update Staff';
   document.getElementById('st_cancel_btn').style.display = 'inline-block';
 }
 function cancelEditStaff(){
   document.getElementById('st_edit_id').value = '';
-  ['st_name','st_phone','st_joining'].forEach(id => document.getElementById(id).value = '');
+  ['st_name','st_phone','st_joining','st_login_pin','st_assigned_classes','st_upi_id'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('st_salary').value = 10000;
   document.getElementById('addStaffTitle').textContent = 'Add Staff';
   document.getElementById('st_submit_btn').textContent = 'Add Staff';
@@ -1466,6 +1527,9 @@ async function addStaff(){
     phone: document.getElementById('st_phone').value.trim(),
     monthly_salary: Number(document.getElementById('st_salary').value) || 0,
     joining_date: document.getElementById('st_joining').value || null,
+    login_pin: document.getElementById('st_login_pin').value.trim() || null,
+    assigned_classes: document.getElementById('st_assigned_classes').value.trim() || null,
+    upi_id: document.getElementById('st_upi_id').value.trim() || null,
   };
   if(!body.name){ showMsg('Name is required', false); return; }
   if(editId){ body.action = 'update'; body.id = editId; }
@@ -1481,6 +1545,9 @@ async function addStaff(){
     STAFF.push(data.staff);
     ['st_name','st_phone'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('st_joining').value = '';
+    document.getElementById('st_login_pin').value = '';
+    document.getElementById('st_assigned_classes').value = '';
+    document.getElementById('st_upi_id').value = '';
     showMsg('Staff added!', true);
   }
   renderStaffTable();
@@ -1543,9 +1610,17 @@ async function loadStaffSalary(){
     <tr>
       <td>${s.name}</td><td>${s.role}</td><td>₹${s.monthly_salary}</td>
       <td><span class="pill ${s.paid?'paid':'due'}">${s.paid?'Paid':'Due'}</span></td>
-      <td>${s.paid ? '-' : `<button class="btn-ghost btn-small" onclick="markStaffSalaryPaid('${s.id}', ${s.monthly_salary}, '${month}')">Record</button>`}</td>
+      <td>${s.paid ? '-' : `<button class="btn-ghost btn-small" onclick="markStaffSalaryPaid('${s.id}', ${s.monthly_salary}, '${month}')">Record</button>${s.upi_id ? ` <button class="btn-ghost btn-small" onclick="payUpiSalary('${s.id}', '${month}')">Pay via UPI</button>` : ''}`}</td>
     </tr>
   `).join('');
+}
+async function payUpiSalary(staff_id, month){
+  showMsg('Sending payout...', true);
+  const res = await fetch('/api/payout-salary', { method:'POST', body: JSON.stringify({ slug, pin: PIN, staff_id, month }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Payout sent!', true);
+  loadStaffSalary();
 }
 async function markStaffSalaryPaid(staff_id, amount, month){
   const res = await fetch('/api/staff-salary', { method:'POST', body: JSON.stringify({ slug, pin: PIN, staff_id, amount, month }) });
