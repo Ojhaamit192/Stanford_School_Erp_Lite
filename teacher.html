@@ -51,6 +51,7 @@
   .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center;}
   .toggle-btn.present.active{background:var(--success); color:#0a1a0f; border-color:var(--success); font-weight:600;}
   .toggle-btn.absent.active{background:var(--danger); color:#2a0906; border-color:var(--danger); font-weight:600;}
+  .mode-card-active{border-color:var(--gold-soft) !important; background:var(--bg-panel-2);}
 
   .msg-thread{border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; max-height:220px; overflow-y:auto;}
   .msg-bubble{padding:6px 10px; border-radius:8px; margin-bottom:6px; font-size:0.85rem; max-width:80%;}
@@ -93,6 +94,17 @@
     <!-- ATTENDANCE -->
     <div class="panel active" id="panel-attendance">
       <div class="card">
+        <h3 style="margin-bottom:10px;">How are you taking attendance today?</h3>
+        <div class="row" style="margin-bottom:14px;">
+          <div style="flex:1; min-width:160px; padding:12px; border:1px solid var(--line); border-radius:10px; cursor:pointer;" id="att_mode_live" onclick="setAttendanceMode('live')">
+            <b>🔴 Live, in class</b>
+            <div class="dim" style="margin-top:2px;">Marking right now — date locked to today.</div>
+          </div>
+          <div style="flex:1; min-width:160px; padding:12px; border:1px solid var(--line); border-radius:10px; cursor:pointer;" id="att_mode_sheet" onclick="setAttendanceMode('sheet')">
+            <b>📋 From paper register</b>
+            <div class="dim" style="margin-top:2px;">Updating end of day from what you wrote on paper.</div>
+          </div>
+        </div>
         <div class="row">
           <div class="field"><label>Class</label><select id="att_class"></select></div>
           <div class="field"><label>Date</label><input id="att_date" type="date"></div>
@@ -132,10 +144,13 @@
         </div>
         <div class="row">
           <div class="field"><label>Subject</label><input id="res_subject" placeholder="e.g. Maths"></div>
-          <div class="field"><label>Max Marks</label><input id="res_max" type="number" value="100"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Theory Max</label><input id="res_theory_max" type="number" value="80"></div>
+          <div class="field"><label>Internal Max</label><input id="res_internal_max" type="number" value="20"></div>
         </div>
         <div id="res_roster"></div>
-        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Send report card link to parents</label><br>
+        <p class="dim" style="margin-top:10px;">This only saves marks — the school office publishes results (and notifies parents) from the Super Admin panel once every subject is entered.</p>
         <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Save Marks</button>
       </div>
     </div>
@@ -189,8 +204,23 @@ async function login(){
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('att_date').value = today;
     document.getElementById('hw_date').value = today;
+    setAttendanceMode('sheet');
   }catch(e){
     document.getElementById('loginMsg').textContent = e.message;
+  }
+}
+
+let attendanceMode = 'sheet';
+function setAttendanceMode(mode){
+  attendanceMode = mode;
+  document.getElementById('att_mode_live').classList.toggle('mode-card-active', mode === 'live');
+  document.getElementById('att_mode_sheet').classList.toggle('mode-card-active', mode === 'sheet');
+  const dateInput = document.getElementById('att_date');
+  if(mode === 'live'){
+    dateInput.value = new Date().toISOString().slice(0,10);
+    dateInput.disabled = true;
+  }else{
+    dateInput.disabled = false;
   }
 }
 
@@ -277,7 +307,8 @@ async function loadResultRoster(){
   document.getElementById('res_roster').innerHTML = resultRoster.map(s => `
     <div class="row" style="margin-bottom:8px;">
       <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
-      <input type="number" placeholder="Marks" id="marks_${s.id}" style="flex:1;">
+      <input type="number" placeholder="Theory Obt." id="theory_${s.id}" style="flex:1;">
+      <input type="number" placeholder="Internal Obt." id="internal_${s.id}" style="flex:1;">
     </div>
   `).join('');
   document.getElementById('res_save_btn').style.display = resultRoster.length ? 'inline-block' : 'none';
@@ -286,14 +317,18 @@ async function saveResults(){
   const cls = document.getElementById('res_class').value;
   const exam_name = document.getElementById('res_exam').value;
   const subject = document.getElementById('res_subject').value.trim();
-  const max_marks = Number(document.getElementById('res_max').value) || 100;
-  const notify = document.getElementById('res_notify').checked;
+  const theory_max = Number(document.getElementById('res_theory_max').value) || 0;
+  const internal_max = Number(document.getElementById('res_internal_max').value) || 0;
   if(!subject){ showMsg('Enter the subject', false); return; }
-  const entries = resultRoster.map(s => ({ student_id: s.id, marks_obtained: Number(document.getElementById('marks_'+s.id).value) || 0 }));
-  const res = await fetch('/api/teacher-results', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, exam_name, subject, max_marks, entries, notify }) });
+  const entries = resultRoster.map(s => ({
+    student_id: s.id,
+    theory_obtained: Number(document.getElementById('theory_'+s.id).value) || 0,
+    internal_obtained: Number(document.getElementById('internal_'+s.id).value) || 0,
+  }));
+  const res = await fetch('/api/teacher-results', { method:'POST', body: JSON.stringify({ slug, phone: PHONE, pin: PIN, class: cls, exam_name, subject, theory_max, internal_max, entries }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Marks saved (${data.saved} students).`, true);
+  showMsg(`Marks saved (${data.saved} students). The school office will publish results when ready.`, true);
 }
 
 // ---------- TIMETABLE ----------

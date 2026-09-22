@@ -33,12 +33,13 @@ exports.handler = async (event) => {
     const today = now.toISOString().slice(0, 10);
     const thisMonthKey = now.toISOString().slice(0, 7);
 
-    const [{ data: attendance }, { data: payments }, { data: homework }, { data: datesheets }, { data: results }] = await Promise.all([
+    const [{ data: attendance }, { data: payments }, { data: homework }, { data: datesheets }, { data: results }, { data: publications }] = await Promise.all([
       supabase.from("attendance").select("date, status").eq("student_id", student.id).gte("date", yearStart).lte("date", today),
       supabase.from("fee_payments").select("month, amount, paid_on").eq("student_id", student.id).order("month", { ascending: false }),
       supabase.from("homework").select("date, text, image_url").eq("school_id", school.id).eq("class", student.class).order("date", { ascending: false }).limit(5),
       supabase.from("datesheets").select("exam_name, text, created_at").eq("school_id", school.id).eq("class", student.class).order("created_at", { ascending: false }).limit(3),
       supabase.from("exam_results").select("exam_name").eq("student_id", student.id),
+      supabase.from("result_publications").select("exam_name").eq("school_id", school.id).eq("class", student.class),
     ]);
 
     let monthPresent = 0, monthTotal = 0, yearPresent = 0, yearTotal = 0;
@@ -52,7 +53,8 @@ exports.handler = async (event) => {
     });
 
     const paidThisMonth = (payments || []).some((p) => p.month === thisMonthKey);
-    const examNames = [...new Set((results || []).map((r) => r.exam_name))];
+    const publishedSet = new Set((publications || []).map((p) => p.exam_name));
+    const examNames = [...new Set((results || []).map((r) => r.exam_name))].filter((name) => publishedSet.has(name));
 
     return {
       statusCode: 200,

@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#FF6A00">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -74,6 +75,7 @@
   .toggle-btn{flex:1; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text-dim); cursor:pointer; font-size:0.82rem; text-align:center; transition:background 0.15s ease, border-color 0.15s ease;}
   .toggle-btn.present.active{background:var(--success); color:#0a1a0f; border-color:var(--success); font-weight:600;}
   .toggle-btn.absent.active{background:var(--danger); color:#2a0906; border-color:var(--danger); font-weight:600;}
+  .mode-card-active{border-color:var(--gold-soft) !important; background:var(--bg-panel-2);}
 
   #msg{font-size:0.88rem; padding:8px 0; min-height:18px;}
   #msg.ok{color:var(--success);} #msg.err{color:var(--danger);}
@@ -254,6 +256,17 @@
     <!-- ATTENDANCE -->
     <div class="panel" id="panel-attendance">
       <div class="card">
+        <h3 style="margin-bottom:10px;">How are you taking attendance today?</h3>
+        <div class="row" style="margin-bottom:14px;">
+          <div style="flex:1; min-width:180px; padding:12px; border:1px solid var(--line); border-radius:10px; cursor:pointer;" id="att_mode_live" onclick="setAttendanceMode('live')">
+            <b>🔴 Live, in class</b>
+            <div class="dim" style="margin-top:2px;">Marking right now while taking the roll call — date is locked to today.</div>
+          </div>
+          <div style="flex:1; min-width:180px; padding:12px; border:1px solid var(--line); border-radius:10px; cursor:pointer;" id="att_mode_sheet" onclick="setAttendanceMode('sheet')">
+            <b>📋 From today's paper register</b>
+            <div class="dim" style="margin-top:2px;">Marked on paper during class, updating the app end of day — pick the date and go student by student off the sheet.</div>
+          </div>
+        </div>
         <div class="row">
           <div class="field"><label>Class</label><select id="att_class"></select></div>
           <div class="field"><label>Date</label><input id="att_date" type="date"></div>
@@ -344,7 +357,7 @@
         </div>
         <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th>Portal Access</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Salary</th><th>Portal Access</th><th>UPI ID</th><th></th></tr></thead>
           <tbody id="staffTable"></tbody>
         </table>
         </div>
@@ -435,12 +448,34 @@
           </div>
           <div class="field"><label>Class</label><select id="res_class"></select></div>
           <div class="field"><label>Subject</label><input id="res_subject" placeholder="e.g.: Maths"></div>
-          <div class="field"><label>Max Marks</label><input id="res_max" type="number" value="100"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Theory Max</label><input id="res_theory_max" type="number" value="80"></div>
+          <div class="field"><label>Internal Max</label><input id="res_internal_max" type="number" value="20"></div>
+          <div style="flex:2; min-width:140px;" class="dim">Total Max: <b id="res_total_max_preview">100</b> (matches the official marksheet's Theory + Internal split — set Internal to 0 if this exam has no internal component)</div>
         </div>
         <button class="btn-ghost" onclick="loadResultRoster()">Load Students</button>
         <div id="res_roster" style="margin-top:14px;"></div>
-        <label style="margin-top:10px;"><input type="checkbox" id="res_notify" checked style="width:auto; display:inline-block;"> Send WhatsApp/SMS to parents</label><br>
-        <button class="btn" style="margin-top:12px; display:none;" id="res_save_btn" onclick="saveResults()">Save Marks</button>
+        <p class="dim" style="margin-top:10px;">Saving here only records marks — nothing is visible to parents or sent by SMS until you Publish below.</p>
+        <button class="btn" style="margin-top:6px; display:none;" id="res_save_btn" onclick="saveResults()">Save Marks</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:6px;">Publish Result</h3>
+        <p class="dim" style="margin-bottom:12px;">Once every subject for a class's exam has been entered above (e.g. Class 8's copies are all checked), publish it here — this makes the report card visible to parents and sends every parent in that class an SMS with the link, all at once.</p>
+        <div class="row">
+          <div class="field"><label>Class</label><select id="pub_class" onchange="checkPublishStatus()"></select></div>
+          <div class="field"><label>Exam</label>
+            <select id="pub_exam" onchange="checkPublishStatus()">
+              <option>Monthly Test</option>
+              <option>Half Yearly</option>
+              <option>Annual Exam</option>
+            </select>
+          </div>
+        </div>
+        <div id="pub_status" class="dim" style="margin-bottom:10px;">Select a class and exam.</div>
+        <button class="btn" id="pub_publish_btn" onclick="publishResult()">Publish &amp; Notify Parents</button>
+        <button class="btn-ghost" id="pub_unpublish_btn" onclick="unpublishResult()" style="display:none;">Unpublish</button>
       </div>
 
       <div class="card">
@@ -584,6 +619,21 @@ function setDefaultDates(){
   document.getElementById('tc_date').value = today;
   document.getElementById('st_att_date').value = today;
   document.getElementById('st_sal_month').value = today.slice(0,7);
+  setAttendanceMode('sheet');
+}
+
+let attendanceMode = 'sheet';
+function setAttendanceMode(mode){
+  attendanceMode = mode;
+  document.getElementById('att_mode_live').classList.toggle('mode-card-active', mode === 'live');
+  document.getElementById('att_mode_sheet').classList.toggle('mode-card-active', mode === 'sheet');
+  const dateInput = document.getElementById('att_date');
+  if(mode === 'live'){
+    dateInput.value = new Date().toISOString().slice(0,10);
+    dateInput.disabled = true;
+  }else{
+    dateInput.disabled = false;
+  }
 }
 
 // ---------- ATTENDANCE INSIGHTS (per class, per student) ----------
@@ -667,7 +717,7 @@ async function loadDashboard(){
 
 function populateClassDropdowns(){
   const options = CLASS_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
-  ['att_class','exp_class','res_class','hw_class','hw_view_class','rc_class','idc_class','ds_class','ds_view_class','ai_class','tt_class','tc_class'].forEach(id => {
+  ['att_class','exp_class','res_class','hw_class','hw_view_class','rc_class','idc_class','ds_class','ds_view_class','ai_class','tt_class','tc_class','pub_class'].forEach(id => {
     document.getElementById(id).innerHTML = options;
   });
   document.getElementById('s_class').innerHTML = '<option value="">Select Class</option>' + options;
@@ -1055,13 +1105,22 @@ async function loadNotices(){
 
 // ---------- RESULTS ----------
 let resultRoster = [];
+function updateTotalMaxPreview(){
+  const t = Number(document.getElementById('res_theory_max').value) || 0;
+  const i = Number(document.getElementById('res_internal_max').value) || 0;
+  document.getElementById('res_total_max_preview').textContent = t + i;
+}
+document.getElementById('res_theory_max').addEventListener('input', updateTotalMaxPreview);
+document.getElementById('res_internal_max').addEventListener('input', updateTotalMaxPreview);
+
 function loadResultRoster(){
   const cls = document.getElementById('res_class').value;
   resultRoster = STUDENTS.filter(s => s.class === cls);
   document.getElementById('res_roster').innerHTML = resultRoster.map(s => `
     <div class="row" style="margin-bottom:8px;">
       <div style="flex:2; min-width:120px;">${s.name} <span class="dim">(${s.roll_no||'-'})</span></div>
-      <input type="number" placeholder="Marks" id="marks_${s.id}" style="flex:1;">
+      <input type="number" placeholder="Theory Obt." id="theory_${s.id}" style="flex:1;">
+      <input type="number" placeholder="Internal Obt." id="internal_${s.id}" style="flex:1;">
     </div>
   `).join('');
   document.getElementById('res_save_btn').style.display = resultRoster.length ? 'inline-block' : 'none';
@@ -1069,17 +1128,60 @@ function loadResultRoster(){
 async function saveResults(){
   const exam_name = document.getElementById('res_exam').value;
   const subject = document.getElementById('res_subject').value.trim();
-  const max_marks = Number(document.getElementById('res_max').value) || 100;
-  const notify = document.getElementById('res_notify').checked;
+  const theory_max = Number(document.getElementById('res_theory_max').value) || 0;
+  const internal_max = Number(document.getElementById('res_internal_max').value) || 0;
   if(!subject){ showMsg('Enter subject', false); return; }
   const entries = resultRoster.map(s => ({
-    student_id: s.id, subject, max_marks,
-    marks_obtained: Number(document.getElementById('marks_'+s.id).value) || 0,
+    student_id: s.id,
+    theory_obtained: Number(document.getElementById('theory_'+s.id).value) || 0,
+    internal_obtained: Number(document.getElementById('internal_'+s.id).value) || 0,
   }));
-  const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, exam_name, entries, notify }) });
+  const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, exam_name, subject, theory_max, internal_max, entries }) });
   const data = await res.json();
   if(!res.ok){ showMsg(data.error, false); return; }
-  showMsg(`Marks saved (${data.saved} students).`, true);
+  showMsg(`Marks saved (${data.saved} students). Not visible to parents yet — publish when ready.`, true);
+}
+
+// ---------- PUBLISH RESULT ----------
+async function checkPublishStatus(){
+  const cls = document.getElementById('pub_class').value;
+  const examName = document.getElementById('pub_exam').value;
+  const statusEl = document.getElementById('pub_status');
+  if(!cls){ statusEl.textContent = 'Select a class and exam.'; return; }
+  statusEl.textContent = 'Checking...';
+  const res = await fetch(`/api/results?slug=${slug}&pin=${PIN}&class=${encodeURIComponent(cls)}&exam_name=${encodeURIComponent(examName)}`);
+  const data = await res.json();
+  if(!res.ok){ statusEl.textContent = data.error; return; }
+  const entryCount = (data.results || []).length;
+  const isPublished = (data.publishedExamNames || []).includes(examName);
+  if(isPublished){
+    statusEl.innerHTML = `<span class="pill paid">Published</span> — ${entryCount} marks entered for ${cls} in ${examName}.`;
+    document.getElementById('pub_publish_btn').textContent = 'Re-Publish & Re-Notify Parents';
+    document.getElementById('pub_unpublish_btn').style.display = 'inline-block';
+  }else{
+    statusEl.innerHTML = `<span class="pill due">Not Published</span> — ${entryCount} marks entered so far for ${cls} in ${examName}.`;
+    document.getElementById('pub_publish_btn').textContent = 'Publish & Notify Parents';
+    document.getElementById('pub_unpublish_btn').style.display = 'none';
+  }
+}
+async function publishResult(){
+  const cls = document.getElementById('pub_class').value;
+  const examName = document.getElementById('pub_exam').value;
+  if(!cls){ showMsg('Select a class', false); return; }
+  const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'publish', class: cls, exam_name: examName }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg(`Published! ${data.notified} parents notified.`, true);
+  checkPublishStatus();
+}
+async function unpublishResult(){
+  const cls = document.getElementById('pub_class').value;
+  const examName = document.getElementById('pub_exam').value;
+  const res = await fetch('/api/results', { method:'POST', body: JSON.stringify({ slug, pin: PIN, action:'unpublish', class: cls, exam_name: examName }) });
+  const data = await res.json();
+  if(!res.ok){ showMsg(data.error, false); return; }
+  showMsg('Unpublished — parents can no longer view this result.', true);
+  checkPublishStatus();
 }
 
 // ---------- REPORT CARD PDF ----------
@@ -1090,6 +1192,18 @@ function loadReportCardStudents(){
   if(!roster.length){ sel.innerHTML = '<option value="">No students in this class</option>'; return; }
   sel.innerHTML = roster.map(s => `<option value="${s.id}">${s.name} (Roll ${s.roll_no||'-'})</option>`).join('');
 }
+function gradeForPct(pct){
+  if(pct >= 90) return 'A+';
+  if(pct >= 80) return 'A';
+  if(pct >= 70) return 'B+';
+  if(pct >= 60) return 'B';
+  if(pct >= 50) return 'C';
+  return '-';
+}
+function resultForPct(pct){
+  return pct >= 50 ? 'PASS' : 'NEEDS IMPROVEMENT';
+}
+
 async function downloadReportCard(){
   const cls = document.getElementById('rc_class').value;
   const studentId = document.getElementById('rc_student').value;
@@ -1103,45 +1217,110 @@ async function downloadReportCard(){
   const student = STUDENTS.find(s => s.id === studentId);
 
   // Totals per student per exam (for rank), from the same class-wide fetch — no extra API call needed.
-  const totalsByExam = {}; // { examName: { studentId: {total, name} } }
+  const totalsByExam = {};
   allEntries.forEach(e => {
     totalsByExam[e.exam_name] = totalsByExam[e.exam_name] || {};
     const t = totalsByExam[e.exam_name];
-    t[e.student_id] = t[e.student_id] || { total: 0, name: e.students?.name || '' };
-    t[e.student_id].total += Number(e.marks_obtained);
+    t[e.student_id] = t[e.student_id] || 0;
+    t[e.student_id] += Number(e.marks_obtained);
   });
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.setFontSize(16); doc.text(SCHOOL.name, 14, 18);
-  doc.setFontSize(11); doc.text(`Report Card — ${student.name} (${student.class}, Roll ${student.roll_no||'-'})`, 14, 27);
-  doc.setDrawColor(255, 106, 0); doc.line(14, 31, 196, 31);
-
-  let y = 42;
   const byExam = {};
   entries.forEach(e => { byExam[e.exam_name] = byExam[e.exam_name] || []; byExam[e.exam_name].push(e); });
 
-  Object.entries(byExam).forEach(([examName, subs]) => {
-    if(y > 260){ doc.addPage(); y = 20; }
-    doc.setFontSize(13); doc.setTextColor(200,90,0); doc.text(examName, 14, y); y += 8;
-    doc.setFontSize(10); doc.setTextColor(0,0,0);
-    let total = 0, maxTotal = 0;
-    subs.forEach(s => {
-      doc.text(`${s.subject}`, 18, y);
-      doc.text(`${s.marks_obtained} / ${s.max_marks}`, 160, y);
-      total += Number(s.marks_obtained); maxTotal += Number(s.max_marks);
-      y += 6;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const examNames = Object.keys(byExam);
+
+  examNames.forEach((examName, examIdx) => {
+    if(examIdx > 0) doc.addPage();
+    const subs = byExam[examName];
+
+    // ---- Header ----
+    doc.setFont(undefined, 'bold'); doc.setFontSize(16);
+    doc.text(SCHOOL.name.toUpperCase(), 105, 16, { align: 'center' });
+    doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+    if(SCHOOL.address) doc.text(SCHOOL.address.toUpperCase(), 105, 22, { align: 'center' });
+    doc.setTextColor(0,0,0); doc.setFont(undefined, 'bold'); doc.setFontSize(12);
+    doc.text(examName.toUpperCase(), 105, 30, { align: 'center' });
+    doc.setDrawColor(255,106,0); doc.setLineWidth(0.5); doc.line(14, 34, 196, 34);
+
+    // ---- Student info ----
+    doc.setFont(undefined, 'normal'); doc.setFontSize(10); doc.setTextColor(0,0,0);
+    doc.text(`STUDENT NAME: ${student.name}`, 14, 42);
+    doc.text(`CLASS: ${student.class}`, 150, 42);
+    doc.text(`ROLL NO.: ${student.roll_no || '-'}`, 14, 48);
+
+    // ---- Marks table (matches the official Theory/Internal/Total format) ----
+    const hasSplit = subs.some(s => s.theory_max !== null && s.theory_max !== undefined);
+    let grandTheoryMax=0, grandTheoryObt=0, grandInternalMax=0, grandInternalObt=0, grandTotalMax=0, grandTotalObt=0;
+
+    const body = subs.map((s, i) => {
+      const tMax = s.theory_max ?? null, tObt = s.theory_obtained ?? null;
+      const iMax = s.internal_max ?? null, iObt = s.internal_obtained ?? null;
+      grandTotalMax += Number(s.max_marks); grandTotalObt += Number(s.marks_obtained);
+      if(tMax !== null){ grandTheoryMax += Number(tMax); grandTheoryObt += Number(tObt); }
+      if(iMax !== null){ grandInternalMax += Number(iMax); grandInternalObt += Number(iObt); }
+      return [
+        i+1, s.subject,
+        tMax !== null ? tMax : '-', tObt !== null ? tObt : '-',
+        iMax !== null ? iMax : '-', iObt !== null ? iObt : '-',
+        s.max_marks, s.marks_obtained,
+      ];
     });
 
-    // Rank: sort every student's total for this exam, descending.
-    const examTotals = Object.entries(totalsByExam[examName] || {}).map(([sid, v]) => ({ sid, total: v.total }));
+    doc.autoTable({
+      startY: 54,
+      head: [['S.NO.','SUBJECT','THEORY\nMAX','THEORY\nOBT.','INTERNAL\nMAX','INTERNAL\nOBT.','TOTAL\nMAX','TOTAL\nOBT.']],
+      body: body,
+      foot: [['','GRAND TOTAL',
+        hasSplit ? grandTheoryMax : '-', hasSplit ? grandTheoryObt : '-',
+        hasSplit ? grandInternalMax : '-', hasSplit ? grandInternalObt : '-',
+        grandTotalMax, grandTotalObt]],
+      theme: 'grid',
+      headStyles: { fillColor: [255,106,0], textColor: [255,255,255], halign: 'center', fontSize: 8 },
+      footStyles: { fillColor: [36,26,18], textColor: [255,255,255], fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { halign: 'center', fontSize: 9 },
+      columnStyles: { 1: { halign: 'left' } },
+    });
+
+    let y = doc.lastAutoTable.finalY + 12;
+    const pct = grandTotalMax ? (grandTotalObt / grandTotalMax) * 100 : 0;
+    const grade = gradeForPct(pct);
+    const result = resultForPct(pct);
+
+    doc.setFontSize(10);
+    doc.text(`TOTAL MARKS: ${grandTotalMax}`, 14, y);
+    doc.text(`MARKS OBTAINED: ${grandTotalObt}`, 90, y);
+    y += 8;
+    doc.text(`PERCENTAGE: ${pct.toFixed(1)}%`, 14, y);
+    doc.setFont(undefined, 'bold');
+    doc.text(`GRADE: ${grade}`, 90, y);
+    doc.setTextColor(result === 'PASS' ? 40 : 200, result === 'PASS' ? 140 : 60, 60);
+    doc.text(`RESULT: ${result}`, 140, y);
+    doc.setTextColor(0,0,0); doc.setFont(undefined, 'normal');
+
+    const examTotals = Object.entries(totalsByExam[examName] || {}).map(([sid, total]) => ({ sid, total }));
     examTotals.sort((a,b) => b.total - a.total);
     const position = examTotals.findIndex(e => e.sid === studentId) + 1;
+    if(position > 0){ y += 8; doc.text(`CLASS RANK: ${position} / ${examTotals.length}`, 14, y); }
 
-    doc.setFontSize(10); doc.setTextColor(0,0,0);
-    doc.text(`Total: ${total} / ${maxTotal}`, 18, y);
-    if(position > 0) doc.text(`Class Rank: ${position} / ${examTotals.length}`, 100, y);
+    // ---- Grade scale reference ----
     y += 12;
+    doc.setFontSize(8); doc.setTextColor(120,120,120);
+    doc.text('GRADE SCALE:  A+ (90-100%)   A (80-89%)   B+ (70-79%)   B (60-69%)   C (50-59%)', 14, y);
+    doc.setTextColor(0,0,0);
+
+    // ---- Signatures ----
+    y = 260;
+    doc.setFontSize(9);
+    doc.text('_____________________', 20, y);
+    doc.text('_____________________', 95, y);
+    doc.text('_____________________', 165, y);
+    y += 5;
+    doc.text('CLASS TEACHER', 20, y);
+    doc.text('PRINCIPAL', 95, y);
+    doc.text("PARENT/GUARDIAN", 155, y);
   });
 
   doc.save(`${student.name.replace(/\s+/g,'_')}-report-card.pdf`);
@@ -1485,11 +1664,12 @@ async function loadStaff(){
 }
 function renderStaffTable(){
   document.getElementById('staffCount').textContent = STAFF.length;
-  if(!STAFF.length){ document.getElementById('staffTable').innerHTML = '<tr><td colspan="6" class="dim">No staff added yet.</td></tr>'; return; }
+  if(!STAFF.length){ document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="dim">No staff added yet.</td></tr>'; return; }
   document.getElementById('staffTable').innerHTML = STAFF.map(s => `
     <tr>
       <td>${s.name}</td><td>${s.role}</td><td>${s.phone||'-'}</td><td>₹${s.monthly_salary||0}</td>
       <td>${s.login_pin ? `<span class="pill paid">Portal ON</span>` : `<span class="dim">No portal login</span>`}</td>
+      <td>${s.upi_id ? s.upi_id : '<span class="dim">-</span>'}</td>
       <td><button class="btn-ghost btn-small" onclick="editStaff('${s.id}')">Edit</button></td>
     </tr>
   `).join('');

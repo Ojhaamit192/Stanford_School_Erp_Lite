@@ -30,9 +30,9 @@ Muzaffarpur** (PIN: `1234`).
   `fee_payments`, `notices`, `exam_results`, `homework`, `enquiries`,
   `datesheets`, `sms_log`, `timetable_slots`, `tc_records`, `staff`,
   `staff_attendance`, `staff_salary_payments`, `messages`,
-  `fee_payment_claims`.
+  `fee_payment_claims`, `result_publications`.
 - `supabase/migration_2_trust_and_growth_features.sql` through
-  `supabase/migration_6_upi_payments.sql` — run these once, in order,
+  `supabase/migration_7_marksheet_format.sql` — run these once, in order,
   if you deployed before those updates.
 - `teacher.html` — Teacher Portal (see the panels table below).
 - `portal.html` — Student/Parent Portal (see the panels table below).
@@ -343,6 +343,17 @@ safe to run more than once):
 5. `supabase/migration_6_upi_payments.sql` — adds `schools.upi_id`,
    `schools.upi_qr_url`, `staff.upi_id`, the `fee_payment_claims` table,
    and fills in Stanford Prep's UPI details.
+6. `supabase/migration_7_marksheet_format.sql` — adds
+   `exam_results.theory_max/theory_obtained/internal_max/internal_obtained`
+   for the official marksheet layout (see below).
+7. `supabase/migration_8_result_publishing.sql` — adds the
+   `result_publications` table (see "Publishing results" below) and
+   marks every exam already in `exam_results` as published, so nothing
+   that was visible before this update disappears.
+
+Or just run `supabase/run_everything.sql` instead of any of the above —
+it does the same thing in one shot and is safe no matter what state
+your database is currently in.
 
 ## 10. Super Admin (only if you run more than one school yourself)
 
@@ -452,6 +463,12 @@ row if you want to gate features later.
   fees status list can both be downloaded as a real `.xlsx` (via
   SheetJS) or a PDF, per class, alongside the existing attendance
   register export and report card / ID card PDFs.
+- **Two attendance modes** — the Attendance tab (Super Admin and Teacher
+  Portal) opens with a choice: **Live, in class** (date locked to today,
+  for marking during the roll call) or **From paper register** (date
+  editable, for updating the app at the end of the day off a physical
+  sheet). Both save to the same place — this is about making the two
+  real workflows explicit, not two different features underneath.
 - **Mark All Present / Mark All Absent** — one click in the Attendance
   tab sets the whole loaded class before you flip the few exceptions,
   instead of tapping every student individually.
@@ -498,7 +515,47 @@ row if you want to gate features later.
   every page header now (`assets/tejvix-logo.png`), same dark/gold glow
   theme as the salon app.
 
+- **Report card matches the official marksheet** — mark entry now
+  splits into Theory and Internal marks per subject (defaults 80/20,
+  editable per exam), and the report card PDF (Report Card button in
+  Results, and the "Download PDF" button on the parent's report-card
+  link) is laid out like Stanford Prep's actual half-yearly marksheet:
+  S.No/Subject/Theory/Internal/Total columns, a Grand Total row,
+  Percentage, Grade (A+ down to C per the school's scale), Result
+  (PASS/NEEDS IMPROVEMENT), and signature lines for Class Teacher,
+  Principal, and Parent/Guardian. Older results entered before this
+  update still display fine — they just show Theory/Internal as "-"
+  and only the Total column, since they were entered as one combined
+  score.
+
+## Publishing results
+
+Marks entry (Super Admin or Teacher Portal) only saves marks — it never
+notifies parents or makes anything visible on its own anymore. Once every
+subject for a class's exam has been entered (e.g. Class 8's copies are
+all checked), the Super Admin publishes it from Results → **Publish
+Result**: pick the class and exam, hit **Publish & Notify Parents**. That
+one action:
+
+- Makes the report card visible at that class's students' report-card
+  links (and in the parent portal's Exams tab) — before publishing, the
+  link shows "No results published yet" even if marks are already saved.
+- Sends every parent in that class one SMS with their child's report
+  card link, all at once, instead of a message per subject as marks
+  trickle in.
+
+**Unpublish** is there for mistakes — pulling a class+exam back to draft
+if something needs correcting before parents see it. **Re-Publish** (the
+button relabels itself once something is already published) re-sends
+the notification SMS — useful if a mark gets corrected after the fact
+and parents should know.
+
+Teachers entering marks in the Teacher Portal never publish — that stays
+a Super Admin action, matching how a Principal typically signs off on
+results before they go out.
+
 ## UI/UX refinement pass
+
 
 Same features, same data model — this pass only touched layout, spacing,
 and consistency, per your "refinement not redesign" brief:

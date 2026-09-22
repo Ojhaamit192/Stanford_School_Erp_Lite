@@ -8,12 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#FF6A00">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-  :root{ --bg:#0D0A08; --bg-panel:#1A130E; --line:#3D2A1A; --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A; }
+  :root{ --bg:#0D0A08; --bg-panel:#1A130E; --line:#3D2A1A; --gold:#FF6A00; --gold-soft:#FFB020; --text:#F5F0EA; --text-dim:#C9B29A; --success:#5EAE7C; --danger:#E0574A; }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
   h1,h2{font-family:'Fraunces',serif; font-weight:500;}
-  .wrap{max-width:600px; margin:0 auto; padding:28px 18px 60px;}
+  .wrap{max-width:640px; margin:0 auto; padding:28px 18px 60px;}
   .school-header{text-align:center; margin-bottom:22px;}
   .school-header img{height:64px; width:64px; border-radius:14px; object-fit:cover; margin-bottom:10px;}
   .school-header h1{font-size:1.3rem; margin-bottom:4px;}
@@ -24,13 +26,21 @@
   .student-bar .name{font-size:1.1rem; font-weight:600;}
   .student-bar .meta{color:var(--text-dim); font-size:0.82rem; margin-top:2px;}
   .card{background:var(--bg-panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;}
-  .exam-name{color:var(--gold-soft); font-size:1rem; font-weight:600; margin-bottom:10px;}
-  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
-  td{padding:6px 0; border-bottom:1px solid var(--line);}
-  td:last-child{text-align:right;}
-  .totals-row td{border-bottom:none; padding-top:10px; font-weight:600;}
+  .exam-name{color:var(--gold-soft); font-size:1.05rem; font-weight:600; margin-bottom:12px;}
+  table{width:100%; border-collapse:collapse; font-size:0.82rem;}
+  th{color:var(--text-dim); font-weight:600; font-size:0.68rem; text-align:center; padding:4px 2px; border-bottom:1px solid var(--line);}
+  td{padding:6px 2px; border-bottom:1px solid var(--line); text-align:center;}
+  td:nth-child(2){text-align:left;}
+  .totals-row td{border-bottom:none; padding-top:8px; font-weight:700; background:var(--bg-panel-2, #241A12);}
+  .summary-row{display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:14px; font-size:0.85rem;}
+  .summary-row b{color:var(--gold-soft);}
+  .result-pass{color:var(--success); font-weight:700;}
+  .result-fail{color:var(--danger); font-weight:700;}
   .rank{color:var(--gold-soft); font-size:0.82rem; margin-top:6px;}
+  .grade-scale{color:var(--text-dim); font-size:0.7rem; margin-top:10px;}
   .empty{color:var(--text-dim); text-align:center; padding:40px 0;}
+  .btn-ghost{display:inline-block; background:none; border:1px solid var(--line); color:var(--text); padding:8px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; margin-top:12px;}
+  .btn-ghost:hover{border-color:var(--gold-soft);}
 </style>
 </head>
 <body>
@@ -43,6 +53,19 @@
 const params = new URLSearchParams(location.search);
 const slug = params.get('school');
 const studentId = params.get('student');
+let REPORT_DATA = null;
+
+function gradeForPct(pct){
+  if(pct >= 90) return 'A+';
+  if(pct >= 80) return 'A';
+  if(pct >= 70) return 'B+';
+  if(pct >= 60) return 'B';
+  if(pct >= 50) return 'C';
+  return '-';
+}
+function resultForPct(pct){
+  return pct >= 50 ? 'PASS' : 'NEEDS IMPROVEMENT';
+}
 
 async function load(){
   const list = document.getElementById('list');
@@ -51,6 +74,7 @@ async function load(){
     const res = await fetch(`/api/results?slug=${encodeURIComponent(slug)}&student=${encodeURIComponent(studentId)}&public=1`);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Load fail');
+    REPORT_DATA = data;
 
     document.getElementById('schoolHeader').innerHTML = `
       ${data.school.logo_url ? `<img src="${data.school.logo_url}" alt="${data.school.name}">` : ''}
@@ -72,17 +96,46 @@ async function load(){
     data.results.forEach(r => { byExam[r.exam_name] = byExam[r.exam_name] || []; byExam[r.exam_name].push(r); });
 
     list.innerHTML = Object.entries(byExam).map(([examName, subs]) => {
-      const total = subs.reduce((sum, s) => sum + Number(s.marks_obtained), 0);
-      const maxTotal = subs.reduce((sum, s) => sum + Number(s.max_marks), 0);
+      const hasSplit = subs.some(s => s.theory_max !== null && s.theory_max !== undefined);
+      const totalObt = subs.reduce((sum, s) => sum + Number(s.marks_obtained), 0);
+      const totalMax = subs.reduce((sum, s) => sum + Number(s.max_marks), 0);
+      const pct = totalMax ? (totalObt / totalMax) * 100 : 0;
+      const grade = gradeForPct(pct);
+      const result = resultForPct(pct);
       const rankInfo = data.ranks[examName];
+
       return `
         <div class="card">
           <div class="exam-name">${examName}</div>
           <table>
-            ${subs.map(s => `<tr><td>${s.subject}</td><td>${s.marks_obtained} / ${s.max_marks}</td></tr>`).join('')}
-            <tr class="totals-row"><td>Total</td><td>${total} / ${maxTotal}</td></tr>
+            <thead><tr>
+              <th>Subject</th>
+              ${hasSplit ? '<th>Theory</th><th>Internal</th>' : ''}
+              <th>Total</th>
+            </tr></thead>
+            <tbody>
+              ${subs.map(s => `
+                <tr>
+                  <td>${s.subject}</td>
+                  ${hasSplit ? `<td>${s.theory_obtained ?? '-'}/${s.theory_max ?? '-'}</td><td>${s.internal_obtained ?? '-'}/${s.internal_max ?? '-'}</td>` : ''}
+                  <td>${s.marks_obtained}/${s.max_marks}</td>
+                </tr>
+              `).join('')}
+              <tr class="totals-row">
+                <td>Grand Total</td>
+                ${hasSplit ? '<td></td><td></td>' : ''}
+                <td>${totalObt}/${totalMax}</td>
+              </tr>
+            </tbody>
           </table>
+          <div class="summary-row">
+            <div>Percentage: <b>${pct.toFixed(1)}%</b></div>
+            <div>Grade: <b>${grade}</b></div>
+            <div class="${result==='PASS'?'result-pass':'result-fail'}">${result}</div>
+          </div>
           ${rankInfo ? `<div class="rank">Class Rank: ${rankInfo.rank} / ${rankInfo.outOf}</div>` : ''}
+          <div class="grade-scale">Grade scale: A+ (90-100%) · A (80-89%) · B+ (70-79%) · B (60-69%) · C (50-59%)</div>
+          <button class="btn-ghost" onclick="downloadPdf('${examName.replace(/'/g,"\\'")}')">Download PDF</button>
         </div>
       `;
     }).join('');
@@ -91,6 +144,93 @@ async function load(){
   }
 }
 load();
+
+function downloadPdf(examName){
+  const data = REPORT_DATA;
+  const subs = data.results.filter(r => r.exam_name === examName);
+  const hasSplit = subs.some(s => s.theory_max !== null && s.theory_max !== undefined);
+
+  let grandTheoryMax=0, grandTheoryObt=0, grandInternalMax=0, grandInternalObt=0, grandTotalMax=0, grandTotalObt=0;
+  const body = subs.map((s, i) => {
+    const tMax = s.theory_max ?? null, tObt = s.theory_obtained ?? null;
+    const iMax = s.internal_max ?? null, iObt = s.internal_obtained ?? null;
+    grandTotalMax += Number(s.max_marks); grandTotalObt += Number(s.marks_obtained);
+    if(tMax !== null){ grandTheoryMax += Number(tMax); grandTheoryObt += Number(tObt); }
+    if(iMax !== null){ grandInternalMax += Number(iMax); grandInternalObt += Number(iObt); }
+    return [
+      i+1, s.subject,
+      tMax !== null ? tMax : '-', tObt !== null ? tObt : '-',
+      iMax !== null ? iMax : '-', iObt !== null ? iObt : '-',
+      s.max_marks, s.marks_obtained,
+    ];
+  });
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFont(undefined, 'bold'); doc.setFontSize(16);
+  doc.text(data.school.name.toUpperCase(), 105, 16, { align: 'center' });
+  doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
+  if(data.school.address) doc.text(data.school.address.toUpperCase(), 105, 22, { align: 'center' });
+  doc.setTextColor(0,0,0); doc.setFont(undefined, 'bold'); doc.setFontSize(12);
+  doc.text(examName.toUpperCase(), 105, 30, { align: 'center' });
+  doc.setDrawColor(255,106,0); doc.setLineWidth(0.5); doc.line(14, 34, 196, 34);
+
+  doc.setFont(undefined, 'normal'); doc.setFontSize(10); doc.setTextColor(0,0,0);
+  doc.text(`STUDENT NAME: ${data.student.name}`, 14, 42);
+  doc.text(`CLASS: ${data.student.class}`, 150, 42);
+  doc.text(`ROLL NO.: ${data.student.roll_no || '-'}`, 14, 48);
+
+  doc.autoTable({
+    startY: 54,
+    head: [['S.NO.','SUBJECT','THEORY\nMAX','THEORY\nOBT.','INTERNAL\nMAX','INTERNAL\nOBT.','TOTAL\nMAX','TOTAL\nOBT.']],
+    body: body,
+    foot: [['','GRAND TOTAL',
+      hasSplit ? grandTheoryMax : '-', hasSplit ? grandTheoryObt : '-',
+      hasSplit ? grandInternalMax : '-', hasSplit ? grandInternalObt : '-',
+      grandTotalMax, grandTotalObt]],
+    theme: 'grid',
+    headStyles: { fillColor: [255,106,0], textColor: [255,255,255], halign: 'center', fontSize: 8 },
+    footStyles: { fillColor: [36,26,18], textColor: [255,255,255], fontStyle: 'bold', halign: 'center' },
+    bodyStyles: { halign: 'center', fontSize: 9 },
+    columnStyles: { 1: { halign: 'left' } },
+  });
+
+  let y = doc.lastAutoTable.finalY + 12;
+  const pct = grandTotalMax ? (grandTotalObt / grandTotalMax) * 100 : 0;
+  const grade = gradeForPct(pct);
+  const result = resultForPct(pct);
+
+  doc.setFontSize(10);
+  doc.text(`TOTAL MARKS: ${grandTotalMax}`, 14, y);
+  doc.text(`MARKS OBTAINED: ${grandTotalObt}`, 90, y);
+  y += 8;
+  doc.text(`PERCENTAGE: ${pct.toFixed(1)}%`, 14, y);
+  doc.setFont(undefined, 'bold');
+  doc.text(`GRADE: ${grade}`, 90, y);
+  doc.setTextColor(result === 'PASS' ? 40 : 200, result === 'PASS' ? 140 : 60, 60);
+  doc.text(`RESULT: ${result}`, 140, y);
+  doc.setTextColor(0,0,0); doc.setFont(undefined, 'normal');
+
+  const rankInfo = data.ranks[examName];
+  if(rankInfo){ y += 8; doc.text(`CLASS RANK: ${rankInfo.rank} / ${rankInfo.outOf}`, 14, y); }
+
+  y += 12;
+  doc.setFontSize(8); doc.setTextColor(120,120,120);
+  doc.text('GRADE SCALE:  A+ (90-100%)   A (80-89%)   B+ (70-79%)   B (60-69%)   C (50-59%)', 14, y);
+  doc.setTextColor(0,0,0);
+
+  y = 260;
+  doc.setFontSize(9);
+  doc.text('_____________________', 20, y);
+  doc.text('_____________________', 95, y);
+  doc.text('_____________________', 165, y);
+  y += 5;
+  doc.text('CLASS TEACHER', 20, y);
+  doc.text('PRINCIPAL', 95, y);
+  doc.text("PARENT/GUARDIAN", 155, y);
+
+  doc.save(`${data.student.name.replace(/\s+/g,'_')}-${examName.replace(/\s+/g,'_')}-report-card.pdf`);
+}
 </script>
 </body>
 </html>
